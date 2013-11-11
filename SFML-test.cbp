@@ -86,6 +86,7 @@
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="src/sparsearray.hpp" />
+		<Unit filename="src/sparsearray2.hpp" />
 		<Unit filename="src/tests/catch.hpp">
 			<Option target="Tests" />
 		</Unit>
