@@ -1,6 +1,7 @@
 #ifndef SPARSEARRAY_HPP_INCLUDED
 #define SPARSEARRAY_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
 #include <vector>
 //#include <exception>
 
@@ -51,8 +52,8 @@ public:
 		handles[handleInfoIndex].handle.instance++; // subsequent access should fail
 
 		if(elements.size() < handles.size())
-			handles[handleInfoIndex].nextUnused = handles[nextUnusedHandle].nextUnused;
-		nextUnusedHandle = arg.index;
+			handles[handleInfoIndex].nextUnused = nextUnusedHandle;
+		nextUnusedHandle = handleInfoIndex;
 
 		elements.erase(elements.begin() + elementIndex);
 

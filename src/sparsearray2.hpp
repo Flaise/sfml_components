@@ -1,6 +1,7 @@
 #ifndef SPARSEARRAY2_HPP_INCLUDED
 #define SPARSEARRAY2_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
 #include <vector>
 
 
@@ -21,12 +22,12 @@ private:
     struct Node {
     	T datum;
     	Instance instance;
-    	Index next;
     	Index prev;
+    	Index next;
 
-    	Node(T datum): datum(datum), next(-1), prev(-1), instance(0) {}
+    	Node(T datum): datum(datum), instance(0), prev(-1), next(-1) {}
 
-    	Node(T datum, Index next, Index prev): datum(datum), next(next), prev(prev), instance(0) {}
+    	Node(T datum, Index prev, Index next): datum(datum), instance(0), prev(prev), next(next) {}
     };
 
     std::vector<Node> elements;
@@ -36,7 +37,7 @@ private:
     size_t currentSize;
 
 public:
-	SparseArray2(): currentSize(0) { }
+	SparseArray2(): currentSize(0), usedTail(-1) { }
 
 	struct Handle {
 		Instance instance;
@@ -79,8 +80,9 @@ public:
 
 	Handle add(T element) {
 		if(currentSize == elements.size()) {
-			elements.push_back(Node(element, -1, usedTail));
-			elements[usedTail].next = currentSize;
+			elements.push_back(Node(element, usedTail, -1));
+			if(currentSize != 0)
+				elements[usedTail].next = currentSize;
 			usedTail = currentSize;
 			currentSize++;
 			return Handle(0, usedTail);

@@ -13,6 +13,35 @@ TEST_CASE("SA2 - no elements") {
 	//REQUIRE_THROWS(arr.remove(SparseArray<char>::Handle(0, 0)));
 
 	//REQUIRE(arr.begin() == arr.end());
+
+	SECTION("add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+	}
+
+	SECTION("2x add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+	}
+
+	SECTION("add1->add2->remove1->remove2") {
+		auto handle1 = arr.add('a');
+		auto handle2 = arr.add('b');
+		arr.remove(handle1);
+		arr.remove(handle2);
+	}
+
+	SECTION("add1->add2->remove2->remove1") {
+		auto handle1 = arr.add('a');
+		auto handle2 = arr.add('b');
+		arr.remove(handle2);
+		arr.remove(handle1);
+	}
 }
 
 TEST_CASE("SA2 - one element") {
@@ -137,6 +166,47 @@ TEST_CASE("Sparse Array - no elements") {
 	REQUIRE_THROWS(arr.remove(SparseArray<char>::Handle(0, 0)));
 
 	REQUIRE(arr.begin() == arr.end());
+
+	SECTION("add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+	}
+
+	SECTION("2x add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+	}
+
+	SECTION("add1->add2->remove1->remove2") {
+		auto handle1 = arr.add('a');
+		auto handle2 = arr.add('b');
+		arr.remove(handle1);
+		arr.remove(handle2);
+	}
+
+	SECTION("add1->add2->remove2->remove1") {
+		auto handle1 = arr.add('a');
+		auto handle2 = arr.add('b');
+		arr.remove(handle2);
+		arr.remove(handle1);
+	}
+
+	SECTION("multiple add/remove") {
+		auto handle1 = arr.add('a');
+		auto handle2 = arr.add('b');
+		arr.remove(handle1);
+		arr.remove(handle2);
+
+		handle1 = arr.add('a');
+		handle2 = arr.add('b');
+		arr.remove(handle2);
+		arr.remove(handle1);
+	}
 }
 
 TEST_CASE("Sparse Array - one element") {
