@@ -13,6 +13,8 @@ TEST_CASE("SA2 - no elements") {
 	//REQUIRE_THROWS(arr.remove(SparseArray<char>::Handle(0, 0)));
 
 	//REQUIRE(arr.begin() == arr.end());
+	REQUIRE_THROWS(*arr.begin());
+	//REQUIRE_THROWS(arr.begin()++);
 
 	SECTION("add->remove") {
 		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
@@ -51,6 +53,10 @@ TEST_CASE("SA2 - one element") {
 	REQUIRE(arr.size() == 1);
 	REQUIRE_FALSE(arr.empty());
 	REQUIRE(arr[handle] == 'a');
+
+	REQUIRE(arr.begin() != arr.end());
+	REQUIRE(++arr.begin() == arr.end());
+	REQUIRE(*arr.begin() == 'a');
 
 	SECTION("remove once") {
 		arr.remove(handle);
@@ -217,6 +223,10 @@ TEST_CASE("Sparse Array - one element") {
 	REQUIRE_FALSE(arr.empty());
 	REQUIRE(arr[handle] == 'a');
 
+	REQUIRE(arr.begin() != arr.end());
+	REQUIRE(++arr.begin() == arr.end());
+	REQUIRE(*arr.begin() == 'a');
+
 	SECTION("remove once") {
 		arr.remove(handle);
 
@@ -250,6 +260,11 @@ TEST_CASE("Sparse Array - two elements") {
 	REQUIRE_FALSE(arr.empty());
 	REQUIRE(arr[handle1] == 'a');
 	REQUIRE(arr[handle2] == 'b');
+
+	REQUIRE(arr.begin() != arr.end());
+	REQUIRE(++arr.begin() != arr.end());
+	REQUIRE(*arr.begin() == 'a');
+	REQUIRE(*(++arr.begin()) == 'b');
 
 	SECTION("remove first") {
 		arr.remove(handle1);

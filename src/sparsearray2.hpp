@@ -31,10 +31,10 @@ private:
     };
 
     std::vector<Node> elements;
+    size_t currentSize;
     Index unusedHead;
     Index usedHead;
     Index usedTail;
-    size_t currentSize;
 
 public:
 	SparseArray2(): currentSize(0), usedTail(-1) { }
@@ -44,7 +44,57 @@ public:
 		Index index;
 
 		Handle(Instance instance, Index index): instance(instance), index(index) {}
+
+		bool operator==(Handle other) {
+			return instance == other.instance && index == other.index;
+		}
 	};
+
+	struct Iterator {
+		SparseArray2* arr;
+		Handle handle;
+
+		Iterator(SparseArray2* arr, Instance instance, Index index): arr(arr), handle(Handle(instance, index)) {}
+
+		Iterator operator++(int) {
+			return ++(*this);
+		}
+		Iterator operator++() {
+			if(handle.index < 0)
+				throw 1;
+			if(arr->elements[handle.index].instance != handle.instance)
+				throw 1;
+			handle.index = arr->elements[handle.index].next;
+			if(handle.index >= 0)
+				handle.instance = arr->elements[handle.index].instance;
+			else
+				handle.instance = 0;
+			return *this;
+		}
+		bool operator==(Iterator other) {
+			return arr == other.arr && handle == other.handle;
+		}
+		bool operator!=(Iterator other) {
+			return !(*this == other);
+		}
+		T& operator*() {
+			return (*arr)[handle];
+		}
+	};
+
+	Iterator begin() {
+		if(currentSize == 0)
+			return Iterator(this, 0, -1);
+		else
+			return Iterator(this, elements[usedHead].instance, usedHead);
+	}
+	Iterator end() {
+		//if(currentSize == 0)
+			return Iterator(this, 0, -1);
+		//else
+		//	return Iterator(this, elements[usedTail].instance, usedTail);
+	}
+
 
 	T& operator[](Handle arg) {
 		if(currentSize == 0)
@@ -83,6 +133,8 @@ public:
 			elements.push_back(Node(element, usedTail, -1));
 			if(currentSize != 0)
 				elements[usedTail].next = currentSize;
+			else
+				usedHead = 0;
 			usedTail = currentSize;
 			currentSize++;
 			return Handle(0, usedTail);
@@ -90,6 +142,9 @@ public:
 		else {
 			Index nodeIndex = unusedHead;
 			unusedHead = elements[nodeIndex].next;
+
+			if(currentSize == 0)
+				usedHead = nodeIndex;
 
 			elements[nodeIndex].datum = element;
 			elements[nodeIndex].next = -1;

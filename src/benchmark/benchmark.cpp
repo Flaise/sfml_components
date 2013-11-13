@@ -142,6 +142,9 @@ clock_t sa_iteration() {
 }
 
 int main() {
+	std::cout << "RAND_MAX = " <<  RAND_MAX << "\n";
+
+
 	float duration;
 
 	/*duration = sa_singleAddRemove() / float(CLOCKS_PER_SEC);
