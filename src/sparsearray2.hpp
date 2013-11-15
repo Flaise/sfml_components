@@ -4,18 +4,9 @@
 #include <boost/cstdint.hpp>
 #include <vector>
 
-
-//template<class T>
-//typedef typename std::vector<T>::iterator Index
-
-//template<class T>
-//using Index = typename std::vector<T>::iterator;
-
-
 template<class T>
 class SparseArray2 {
 private:
-	//using Index = typename std::vector<T>::iterator;
 	using Index = int16_t;
 	using Instance = uint16_t;
 
@@ -60,10 +51,12 @@ public:
 			return ++(*this);
 		}
 		Iterator operator++() {
-			if(handle.index < 0)
-				throw 1;
-			if(arr->elements[handle.index].instance != handle.instance)
-				throw 1;
+			#ifdef DEBUG
+				if(handle.index < 0)
+					throw 1;
+				if(arr->elements[handle.index].instance != handle.instance)
+					throw 1;
+			#endif
 			handle.index = arr->elements[handle.index].next;
 			if(handle.index >= 0)
 				handle.instance = arr->elements[handle.index].instance;
@@ -78,6 +71,8 @@ public:
 			return !(*this == other);
 		}
 		T& operator*() {
+			if(arr->currentSize == 0)
+				throw 1;
 			return (*arr)[handle];
 		}
 	};
@@ -89,26 +84,25 @@ public:
 			return Iterator(this, elements[usedHead].instance, usedHead);
 	}
 	Iterator end() {
-		//if(currentSize == 0)
-			return Iterator(this, 0, -1);
-		//else
-		//	return Iterator(this, elements[usedTail].instance, usedTail);
+		return Iterator(this, 0, -1);
 	}
 
 
 	T& operator[](Handle arg) {
-		if(currentSize == 0)
-			throw 1;
-		if(elements[arg.index].instance != arg.instance)
-			throw 1;
+		#ifdef DEBUG
+			if(elements[arg.index].instance != arg.instance)
+				throw 1;
+		#endif
 		return elements[arg.index].datum;
 	}
 
 	void remove(Handle arg) {
-		if(currentSize == 0)
-			throw 1;
-		if(elements[arg.index].instance != arg.instance)
-			throw 1;
+		#ifdef DEBUG
+			if(currentSize == 0)
+				throw 1;
+			if(elements[arg.index].instance != arg.instance)
+				throw 1;
+		#endif
 
 		if(elements[arg.index].prev == -1)
 			usedHead = elements[arg.index].next;
@@ -121,7 +115,7 @@ public:
 			elements[elements[arg.index].next].prev = elements[arg.index].prev;
 
 		elements[arg.index].instance++;
-		elements[arg.index].prev = -1;
+		//elements[arg.index].prev = -1; ///////////////////////////////////////// necessary?
 		elements[arg.index].next = unusedHead;
 		unusedHead = arg.index;
 
@@ -167,7 +161,5 @@ public:
 		return size() == 0;
 	}
 };
-
-
 
 #endif // SPARSEARRAY2_HPP_INCLUDED
