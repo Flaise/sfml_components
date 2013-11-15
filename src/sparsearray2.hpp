@@ -1,6 +1,7 @@
 #ifndef SPARSEARRAY2_HPP_INCLUDED
 #define SPARSEARRAY2_HPP_INCLUDED
 
+#include "assert.hpp"
 #include <boost/cstdint.hpp>
 #include <vector>
 
@@ -51,12 +52,10 @@ public:
 			return ++(*this);
 		}
 		Iterator operator++() {
-			#ifdef DEBUG
-				if(handle.index < 0)
-					throw 1;
-				if(arr->elements[handle.index].instance != handle.instance)
-					throw 1;
-			#endif
+			ASSERT(handle.index >= 0);
+			ASSERT(handle.index < arr->elements.size());
+			ASSERT(arr->elements[handle.index].instance == handle.instance);
+
 			handle.index = arr->elements[handle.index].next;
 			if(handle.index >= 0)
 				handle.instance = arr->elements[handle.index].instance;
@@ -71,8 +70,7 @@ public:
 			return !(*this == other);
 		}
 		T& operator*() {
-			if(arr->currentSize == 0)
-				throw 1;
+			ASSERT(arr->currentSize > 0);
 			return (*arr)[handle];
 		}
 	};
@@ -89,33 +87,35 @@ public:
 
 
 	T& operator[](Handle arg) {
-		#ifdef DEBUG
-			if(elements[arg.index].instance != arg.instance)
-				throw 1;
-		#endif
+		ASSERT(arg.index >= 0);
+		ASSERT(arg.index < elements.size());
+		ASSERT(elements[arg.index].instance == arg.instance);
 		return elements[arg.index].datum;
 	}
 
 	void remove(Handle arg) {
-		#ifdef DEBUG
-			if(currentSize == 0)
-				throw 1;
-			if(elements[arg.index].instance != arg.instance)
-				throw 1;
-		#endif
+		ASSERT(currentSize > 0);
+		ASSERT(arg.index >= 0);
+		ASSERT(arg.index < elements.size());
+		ASSERT(elements[arg.index].instance == arg.instance);
 
 		if(elements[arg.index].prev == -1)
 			usedHead = elements[arg.index].next;
-		else
+		else {
+			ASSERT(elements[arg.index].prev >= 0);
+			ASSERT(elements[arg.index].prev < elements.size());
 			elements[elements[arg.index].prev].next = elements[arg.index].next;
+		}
 
 		if(elements[arg.index].next == -1)
 			usedTail = elements[arg.index].prev;
-		else
+		else {
+			ASSERT(elements[arg.index].next >= 0);
+			ASSERT(elements[arg.index].next < elements.size());
 			elements[elements[arg.index].next].prev = elements[arg.index].prev;
+		}
 
 		elements[arg.index].instance++;
-		//elements[arg.index].prev = -1; ///////////////////////////////////////// necessary?
 		elements[arg.index].next = unusedHead;
 		unusedHead = arg.index;
 
@@ -125,8 +125,11 @@ public:
 	Handle add(T element) {
 		if(currentSize == elements.size()) {
 			elements.push_back(Node(element, usedTail, -1));
-			if(currentSize != 0)
+			if(currentSize != 0) {
+				ASSERT(usedTail >= 0);
+				ASSERT(usedTail < elements.size());
 				elements[usedTail].next = currentSize;
+			}
 			else
 				usedHead = 0;
 			usedTail = currentSize;
@@ -135,15 +138,22 @@ public:
 		}
 		else {
 			Index nodeIndex = unusedHead;
+
+			ASSERT(nodeIndex >= 0);
+			ASSERT(nodeIndex < elements.size());
 			unusedHead = elements[nodeIndex].next;
 
 			if(currentSize == 0)
 				usedHead = nodeIndex;
+			else {
+				ASSERT(usedTail >= 0);
+				ASSERT(usedTail < elements.size());
+				elements[usedTail].next = nodeIndex;
+			}
 
 			elements[nodeIndex].datum = element;
 			elements[nodeIndex].next = -1;
 			elements[nodeIndex].prev = usedTail;
-			elements[usedTail].next = nodeIndex;
 			usedTail = nodeIndex;
 
 			currentSize++;
@@ -153,11 +163,11 @@ public:
 	}
 
 
-	size_t size() {
+	size_t size() const {
 		return currentSize;
 	}
 
-	bool empty() {
+	bool empty() const {
 		return size() == 0;
 	}
 };

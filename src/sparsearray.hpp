@@ -1,9 +1,9 @@
 #ifndef SPARSEARRAY_HPP_INCLUDED
 #define SPARSEARRAY_HPP_INCLUDED
 
+#include "assert.hpp"
 #include <boost/cstdint.hpp>
 #include <vector>
-//#include <exception>
 
 template <class T>
 class SparseArray {
@@ -32,32 +32,29 @@ private:
 public:
 
 	T& operator[](Handle arg) {
-		if(handles.empty())
-			throw 1;
-		if(handles[arg.index].handle.instance != arg.instance)
-			//throw exception();
-			throw 1;
+		ASSERT(!handles.empty());
+		ASSERT(arg.index < handles.size());
+		ASSERT(handles[arg.index].handle.instance == arg.instance);
 		return elements[handles[arg.index].handle.index];
 	}
 
 	void remove(Handle arg) {
-		if(handles.empty())
-			throw 1;
-		if(handles[arg.index].handle.instance != arg.instance)
-			throw 1;
+		ASSERT(!handles.empty());
+		ASSERT(arg.index < handles.size());
+		ASSERT(handles[arg.index].handle.instance == arg.instance);
 
 		uint16_t handleInfoIndex = arg.index;
 		uint16_t elementIndex = handles[handleInfoIndex].handle.index;
 
+		ASSERT(handleInfoIndex < handles.size());
 		handles[handleInfoIndex].handle.instance++; // subsequent access should fail
 
 		if(elements.size() < handles.size())
 			handles[handleInfoIndex].nextUnused = nextUnusedHandle;
 		nextUnusedHandle = handleInfoIndex;
 
+		ASSERT(elementIndex < elements.size());
 		elements.erase(elements.begin() + elementIndex);
-
-		//for(int i = handles[arg.index].handle.index; i < elements.size(); i++)
 
 		for(typename std::vector<HandleInfo>::iterator it = handles.begin(); it != handles.end(); it++)
 			if(it->handle.index > elementIndex)
@@ -74,6 +71,8 @@ public:
 		}
 
 		size_t handleIndex = nextUnusedHandle;
+		ASSERT(nextUnusedHandle < handles.size());
+
 		nextUnusedHandle = handles[handleIndex].nextUnused;
 		uint16_t instance = handles[handleIndex].handle.instance;
 		handles[handleIndex].handle.index = index;

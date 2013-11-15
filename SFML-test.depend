@@ -339,7 +339,120 @@
 	<string>
 	<vector>
 
-1384227377 c:\users\flaise\repositories\sfml_components\src\sparsearray.hpp
+1384521480 c:\users\flaise\repositories\sfml_components\src\sparsearray.hpp
+	"assert.hpp"
 	<boost/cstdint.hpp>
 	<vector>
+
+1384515744 source:c:\users\flaise\repositories\sfml_components\src\tests\tests.cpp
+	"catch.hpp"
+	"../sparsearray3.hpp"
+	"../sparsearray2.hpp"
+	"../sparsearray.hpp"
+
+1384110604 c:\users\flaise\repositories\sfml_components\src\tests\catch.hpp
+	<sstream>
+	<stdexcept>
+	<algorithm>
+	<ostream>
+	<string>
+	<memory>
+	<vector>
+	<stdlib.h>
+	<vector>
+	<sstream>
+	<iomanip>
+	<limits>
+	<string>
+	<string>
+	<string>
+	<cstddef>
+	<iostream>
+	<assert.h>
+	<stdbool.h>
+	<sys/types.h>
+	<unistd.h>
+	<sys/sysctl.h>
+	<string>
+	<set>
+	<string>
+	<set>
+	<map>
+	<vector>
+	<string>
+	<vector>
+	<iostream>
+	<string>
+	<streambuf>
+	<stdexcept>
+	<cstdio>
+	<memory>
+	<vector>
+	<string>
+	<iostream>
+	<string>
+	<ostream>
+	<map>
+	<vector>
+	<ostream>
+	<string>
+	<iterator>
+	<vector>
+	<string>
+	<stdlib.h>
+	<string>
+	<cmath>
+	<limits>
+	<string>
+	<string>
+	<string>
+	<vector>
+	<limits>
+	<algorithm>
+	<map>
+	<string>
+	<set>
+	<string>
+	<fstream>
+	<stdlib.h>
+	<limits>
+	<vector>
+	<set>
+	<sstream>
+	<iostream>
+	<map>
+	<ostream>
+	<windows.h>
+	<unistd.h>
+	<vector>
+	<string>
+	<map>
+	<assert.h>
+	<string>
+	<vector>
+	<sstream>
+	<iostream>
+	<string>
+	<vector>
+	<assert.h>
+
+1384526164 c:\users\flaise\repositories\sfml_components\src\sparsearray3.hpp
+	"assert.hpp"
+
+1384522906 c:\users\flaise\repositories\sfml_components\src\sparsearray2.hpp
+	"assert.hpp"
+	<boost/cstdint.hpp>
+	<vector>
+
+1384526402 source:c:\users\flaise\repositories\sfml_components\src\benchmark\benchmark.cpp
+	<iostream>
+	<cstdlib>
+	<time.h>
+	"../assert.hpp"
+	"../sparsearray.hpp"
+	"../sparsearray2.hpp"
+	"../sparsearray3.hpp"
+
+1384515358 c:\users\flaise\repositories\sfml_components\src\assert.hpp
+	<iostream>
 

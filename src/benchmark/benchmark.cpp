@@ -2,6 +2,14 @@
 #include <cstdlib>
 #include <time.h>
 
+#ifdef DEBUG
+	void _assertFail(const char* file, int line) {
+		throw 1;
+	}
+	#define ASSERT_FAIL(file, line) _assertFail(file, line)
+#endif
+
+#include "../assert.hpp"
 #include "../sparsearray.hpp"
 #include "../sparsearray2.hpp"
 #include "../sparsearray3.hpp"
@@ -176,7 +184,7 @@ clock_t sa_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 20; i++) {
+	for(int i = 0; i < 100; i++) {
 		SparseArray<int> arr;
 		for(int j = 0; j <= 1000; j++)
 			if(rand() % 3 == 0)
@@ -200,7 +208,7 @@ clock_t sa2_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 20; i++) {
+	for(int i = 0; i < 100; i++) {
 		SparseArray2<int> arr;
 		for(int j = 0; j <= 1000; j++)
 			if(rand() % 3 == 0)
@@ -224,7 +232,7 @@ clock_t sa3_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 20; i++) {
+	for(int i = 0; i < 100; i++) {
 		SparseArray3<int> arr;
 		for(int j = 0; j <= 1000; j++)
 			if(rand() % 3 == 0)
@@ -244,9 +252,6 @@ clock_t sa3_iteration() {
 }
 
 int main() {
-	std::cout << "RAND_MAX = " <<  RAND_MAX << "\n";
-
-
 	float duration;
 
 	duration = sa_singleAddRemove() / float(CLOCKS_PER_SEC);

@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DDEBUG" />
 				</Compiler>
 				<Linker>
 					<Add library="sfml-graphics-s-d" />
@@ -30,9 +31,9 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add library="smfl-graphics-s" />
-					<Add library="smfl-window-s" />
-					<Add library="smfl-system-s" />
+					<Add library="sfml-graphics-s" />
+					<Add library="sfml-window-s" />
+					<Add library="sfml-system-s" />
 				</Linker>
 			</Target>
 			<Target title="Tests">
@@ -42,6 +43,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DDEBUG" />
 				</Compiler>
 			</Target>
 			<Target title="Benchmark">
@@ -112,6 +114,7 @@
 		</Unit>
 		<Unit filename="src/sparsearray.hpp" />
 		<Unit filename="src/sparsearray2.hpp" />
+		<Unit filename="src/sparsearray3.hpp" />
 		<Unit filename="src/tests/catch.hpp">
 			<Option target="Tests" />
 		</Unit>

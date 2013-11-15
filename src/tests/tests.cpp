@@ -2,6 +2,12 @@
 #include "catch.hpp"
 
 
+void _assertFail(const char* file, int line) {
+	throw 1;
+}
+#define ASSERT_FAIL(file, line) _assertFail(file, line)
+
+
 #include "../sparsearray3.hpp"
 
 TEST_CASE("SA3 - no elements") {

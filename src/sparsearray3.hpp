@@ -1,6 +1,7 @@
 #ifndef SPARSEARRAY3_HPP_INCLUDED
 #define SPARSEARRAY3_HPP_INCLUDED
 
+#include "assert.hpp"
 
 
 template<class T, int allocationSize=50>
@@ -29,14 +30,11 @@ private:
     	NodeArray(NodeArray* next): next(next) {}
 
     	~NodeArray() {
-    		//if(data)
-			//	delete data;
 			if(next)
 				delete next;
     	}
     };
 
-    //std::vector<Node> elements;
     NodeArray* arr;
     size_t currentCapacity;
     size_t nodeCount;
@@ -66,12 +64,8 @@ public:
 		}
 
 		T& operator*() {
-			#if DEBUG
-				if(node == nullptr)
-					throw 1;
-				if(node->instance != instance)
-					throw 1;
-			#endif
+			ASSERT(node != nullptr);
+			ASSERT(node->instance == instance);
 			return node->datum;
 		}
 
@@ -79,12 +73,9 @@ public:
 			return ++(*this);
 		}
 		Handle operator++() {
-			#ifdef DEBUG
-				if(node == nullptr)
-					throw 1;
-				if(node->instance != instance)
-					throw 1;
-			#endif
+			ASSERT(node != nullptr);
+			ASSERT(node->instance == instance);
+
 			node = node->next;
 			if(node != nullptr)
 				instance = node->instance;
@@ -109,28 +100,28 @@ public:
 	}
 
 	void remove(Handle arg) {
-		#ifdef DEBUG
-			if(elementCount == 0)
-				throw 1;
-			if(arg.node->instance != arg.instance)
-				throw 1;
-		#endif
+		ASSERT(elementCount > 0);
+		ASSERT(arg.node->instance == arg.instance);
 
-		if(arg.node->prev == nullptr)
+		if(arg.node->prev == nullptr) {
 			usedHead = arg.node->next;
-		else
+			ASSERT(!(elementCount >= 2 && usedHead == nullptr));
+		}
+		else {
+			ASSERT(arg.node->prev != nullptr);
 			arg.node->prev->next = arg.node->next;
+		}
 
 		if(arg.node->next == nullptr) {
 			usedTail = arg.node->prev;
-			if(elementCount >= 2 && usedTail == nullptr)
-				throw 2;
+			ASSERT(!(elementCount >= 2 && usedTail == nullptr));
 		}
-		else
+		else {
+			ASSERT(arg.node->next != nullptr);
 			arg.node->next->prev = arg.node->prev;
+		}
 
 		arg.node->instance++;
-		arg.node->prev = nullptr; ////////////////////////////////////// is this necessary?
 		arg.node->next = unusedHead;
 		unusedHead = arg.node;
 
@@ -142,6 +133,7 @@ public:
 			arr = new NodeArray(arr);
 			currentCapacity += allocationSize;
 		}
+
 		if(elementCount == nodeCount) {
 			Node* node = arr->data + (elementCount % allocationSize);
 			node->instance = 0;
@@ -160,6 +152,8 @@ public:
 			return Handle(0, node);
 		}
 		else {
+			ASSERT(unusedHead != nullptr);
+
 			Node* node = unusedHead;
 			unusedHead = node->next;
 
@@ -182,11 +176,11 @@ public:
 	}
 
 
-	size_t size() {
+	size_t size() const {
 		return elementCount;
 	}
 
-	bool empty() {
+	bool empty() const {
 		return size() == 0;
 	}
 };
