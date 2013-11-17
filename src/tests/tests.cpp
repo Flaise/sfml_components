@@ -2,13 +2,145 @@
 #include "catch.hpp"
 
 
-void _assertFail(const char* file, int line) {
-	throw 1;
-}
-#define ASSERT_FAIL(file, line) _assertFail(file, line)
-
-
 #include "../sparsearray3.hpp"
+
+TEST_CASE("SA3 - 1000 elements - iteration") {
+	SparseArray3<int> arr;
+	for(int i = 0; i < 1000; i++)
+		arr.add(i);
+	REQUIRE(arr.size() == 1000);
+	REQUIRE_FALSE(arr.empty());
+
+	SECTION("Simple forward iteration") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++)
+			REQUIRE(*it == i);
+	}
+
+	SECTION("Remove every other element then iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++) {
+			REQUIRE(*it == i);
+			if(i % 2 == 0)
+				REQUIRE_NOTHROW(arr.remove(it));
+		}
+
+		it = arr.begin();
+		for(int i = 1; i < 1000; i += 2, it++) {
+			REQUIRE(*it == i);
+		}
+	}
+
+	SECTION("Remove all") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++) {
+			REQUIRE(*it == i);
+			arr.remove(it);
+		}
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+		REQUIRE(arr.begin() == arr.end());
+	}
+
+	SECTION("Remove from middle and iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 500; i++, it++)
+			;
+		arr.remove(it);
+		REQUIRE(arr.size() == 999);
+
+		it = arr.begin();
+		for(int i = 0; i < 999; i++, it++) {
+			REQUIRE(*it == (i < 500? i: i + 1));
+		}
+		REQUIRE(it == arr.end());
+	}
+
+	SECTION("Remove 2 from middle and iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 500; i++, it++)
+			;
+		arr.remove(it);
+		arr.remove(++it);
+		REQUIRE(arr.size() == 998);
+
+		it = arr.begin();
+		for(int i = 0; i < 998; i++, it++) {
+			REQUIRE(*it == (i < 500? i: i + 2));
+		}
+		REQUIRE(it == arr.end());
+	}
+}
+
+TEST_CASE("SA3 - 1000 elements after removals") {
+	SparseArray3<int> arr;
+	for(int i = 0; i < 1000; i++) {
+		arr.remove(arr.add(i));
+		arr.add(i);
+	}
+	REQUIRE(arr.size() == 1000);
+	REQUIRE_FALSE(arr.empty());
+
+	SECTION("Simple forward iteration") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++)
+			REQUIRE(*it == i);
+	}
+
+	SECTION("Remove every other element then iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++) {
+			REQUIRE(*it == i);
+			if(i % 2 == 0)
+				REQUIRE_NOTHROW(arr.remove(it));
+		}
+
+		it = arr.begin();
+		for(int i = 1; i < 1000; i += 2, it++) {
+			REQUIRE(*it == i);
+		}
+	}
+
+	SECTION("Remove all") {
+		auto it = arr.begin();
+		for(int i = 0; i < 1000; i++, it++) {
+			REQUIRE(*it == i);
+			arr.remove(it);
+		}
+		REQUIRE(arr.size() == 0);
+		REQUIRE(arr.empty());
+		REQUIRE(arr.begin() == arr.end());
+	}
+
+	SECTION("Remove from middle and iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 500; i++, it++)
+			;
+		arr.remove(it);
+		REQUIRE(arr.size() == 999);
+
+		it = arr.begin();
+		for(int i = 0; i < 999; i++, it++) {
+			REQUIRE(*it == (i < 500? i: i + 1));
+		}
+		REQUIRE(it == arr.end());
+	}
+
+	SECTION("Remove 2 from middle and iterate") {
+		auto it = arr.begin();
+		for(int i = 0; i < 500; i++, it++)
+			;
+		arr.remove(it);
+		arr.remove(++it);
+		REQUIRE(arr.size() == 998);
+
+		it = arr.begin();
+		for(int i = 0; i < 998; i++, it++) {
+			REQUIRE(*it == (i < 500? i: i + 2));
+		}
+		REQUIRE(it == arr.end());
+	}
+}
 
 TEST_CASE("SA3 - no elements") {
 	SparseArray3<char> arr;
@@ -18,7 +150,7 @@ TEST_CASE("SA3 - no elements") {
 	//REQUIRE_THROWS(arr[SparseArray<char>::Handle(0, 0)]);
 	//REQUIRE_THROWS(arr.remove(SparseArray<char>::Handle(0, 0)));
 
-	//REQUIRE(arr.begin() == arr.end());
+	REQUIRE(arr.begin() == arr.end());
 	REQUIRE_THROWS(*arr.begin());
 	//REQUIRE_THROWS(arr.begin()++);
 
@@ -33,15 +165,18 @@ TEST_CASE("SA3 - no elements") {
 		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
 		REQUIRE(arr.size() == 0);
 		REQUIRE(arr.empty());
+		REQUIRE(arr.begin() == arr.end());
 	}
 
 	SECTION("2x add->remove") {
 		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
 		REQUIRE(arr.size() == 0);
 		REQUIRE(arr.empty());
+		REQUIRE(arr.begin() == arr.end());
 		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
 		REQUIRE(arr.size() == 0);
 		REQUIRE(arr.empty());
+		REQUIRE(arr.begin() == arr.end());
 	}
 
 	SECTION("add1->add2->remove1->remove2") {
@@ -94,6 +229,24 @@ TEST_CASE("SA3 - one element") {
 		REQUIRE_THROWS(arr[handle]);
 		REQUIRE_FALSE(arr.empty());
 		REQUIRE(arr.size() == 1);
+	}
+
+	SECTION("add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 1);
+		REQUIRE_FALSE(arr.empty());
+		REQUIRE(arr.begin() != arr.end());
+	}
+
+	SECTION("2x add->remove") {
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 1);
+		REQUIRE_FALSE(arr.empty());
+		REQUIRE(arr.begin() != arr.end());
+		REQUIRE_NOTHROW(arr.remove(arr.add('a')));
+		REQUIRE(arr.size() == 1);
+		REQUIRE_FALSE(arr.empty());
+		REQUIRE(arr.begin() != arr.end());
 	}
 }
 

@@ -2,19 +2,13 @@
 #include <cstdlib>
 #include <time.h>
 
-#ifdef DEBUG
-	void _assertFail(const char* file, int line) {
-		throw 1;
-	}
-	#define ASSERT_FAIL(file, line) _assertFail(file, line)
-#endif
-
 #include "../assert.hpp"
 #include "../sparsearray.hpp"
 #include "../sparsearray2.hpp"
 #include "../sparsearray3.hpp"
 
-const int iterations = 30000000;
+const int iterations = 20000000;
+const int iteration_iterations = 500;
 
 clock_t sa_singleAddRemove() {
 	clock_t start = clock();
@@ -184,16 +178,16 @@ clock_t sa_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < iteration_iterations; i++) {
 		SparseArray<int> arr;
-		for(int j = 0; j <= 1000; j++)
+		for(int j = 0; j <= 5000; j++)
 			if(rand() % 3 == 0)
 				arr.remove(arr.add(j));
 			else
 				arr.add(j);
 
 		clock_t start = clock();
-		for(int j = 0; j < 1000; j++)
+		for(int j = 0; j < iteration_iterations; j++)
 			for(auto r = arr.begin(); r != arr.end(); r++)
 				valueAccumulator += *r;
 		clock_t stop = clock();
@@ -208,16 +202,16 @@ clock_t sa2_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < iteration_iterations; i++) {
 		SparseArray2<int> arr;
-		for(int j = 0; j <= 1000; j++)
+		for(int j = 0; j <= 5000; j++)
 			if(rand() % 3 == 0)
 				arr.remove(arr.add(j));
 			else
 				arr.add(j);
 
 		clock_t start = clock();
-		for(int j = 0; j < 1000; j++)
+		for(int j = 0; j < iteration_iterations; j++)
 			for(auto r = arr.begin(); r != arr.end(); r++)
 				valueAccumulator += *r;
 		clock_t stop = clock();
@@ -232,18 +226,21 @@ clock_t sa3_iteration() {
 	clock_t accumulator = 0;
 	int valueAccumulator = 0;
 
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < iteration_iterations; i++) {
 		SparseArray3<int> arr;
-		for(int j = 0; j <= 1000; j++)
+		for(int j = 0; j <= 5000; j++)
 			if(rand() % 3 == 0)
 				arr.remove(arr.add(j));
 			else
 				arr.add(j);
 
 		clock_t start = clock();
-		for(int j = 0; j < 1000; j++)
-			for(auto r = arr.begin(); r != arr.end(); r++)
+		for(int j = 0; j < iteration_iterations; j++) {
+			int h = 0;
+			for(auto r = arr.begin(); r != arr.end(); r++, h++) {
 				valueAccumulator += *r;
+			}
+		}
 		clock_t stop = clock();
 		accumulator += stop - start;
 	}
@@ -269,11 +266,11 @@ int main() {
 	std::cout << "sa3 doubleAddRemove: " << duration << "\n\n";
 
 	duration = sa_tripleAddRemove() / float(CLOCKS_PER_SEC);
-	std::cout << "sa1 doubleAddRemove: " << duration << "\n";
+	std::cout << "sa1 tripleAddRemove: " << duration << "\n";
 	duration = sa2_tripleAddRemove() / float(CLOCKS_PER_SEC);
-	std::cout << "sa2 doubleAddRemove: " << duration << "\n";
+	std::cout << "sa2 tripleAddRemove: " << duration << "\n";
 	duration = sa3_tripleAddRemove() / float(CLOCKS_PER_SEC);
-	std::cout << "sa3 doubleAddRemove: " << duration << "\n\n";
+	std::cout << "sa3 tripleAddRemove: " << duration << "\n\n";
 
 	duration = sa_iteration() / float(CLOCKS_PER_SEC);
 	std::cout << "sa1 iteration: " << duration << "\n";

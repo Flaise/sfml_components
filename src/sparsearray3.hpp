@@ -7,7 +7,6 @@
 template<class T, int allocationSize=50>
 class SparseArray3 {
 private:
-	using Index = int16_t;
 	using Instance = uint16_t;
 
     struct Node {
@@ -43,9 +42,28 @@ private:
     Node* usedHead;
     Node* usedTail;
 
+    void pushUnused(Node* node) {
+    	ASSERT(node != nullptr);
+    	ASSERT(unusedHead == nullptr || node->next != unusedHead);
+
+		node->instance++;
+		node->next = unusedHead;
+		unusedHead = node;
+    }
+    Node* popUnused() {
+		ASSERT(unusedHead != nullptr);
+		ASSERT(unusedHead != usedHead);
+		ASSERT(unusedHead != usedTail);
+
+		Node* node = unusedHead;
+		unusedHead = node->next;
+		return node;
+    }
+
 public:
 	SparseArray3():
-		arr(nullptr), currentCapacity(0), nodeCount(0), elementCount(0), usedTail(nullptr) { }
+		arr(nullptr), currentCapacity(0), nodeCount(0), elementCount(0),
+		unusedHead(nullptr), usedTail(nullptr) { }
 	~SparseArray3() {
 		delete arr;
 	}
@@ -53,6 +71,8 @@ public:
 	struct Handle {
 		Instance instance;
 		Node* node;
+
+		Handle() {}
 
 		Handle(Instance instance, Node* node): instance(instance), node(node) {}
 
@@ -68,64 +88,114 @@ public:
 			ASSERT(node->instance == instance);
 			return node->datum;
 		}
+	};
 
-		Handle operator++(int) {
-			return ++(*this);
-		}
-		Handle operator++() {
-			ASSERT(node != nullptr);
-			ASSERT(node->instance == instance);
+	class Iterator {
+		friend class SparseArray3;
 
-			node = node->next;
-			if(node != nullptr)
-				instance = node->instance;
-			else
-				instance = 0;
-			return *this;
-		}
+		private:
+			Handle current;
+			Handle next;
+
+			Iterator(Handle current): current(current) {
+				updateNext();
+			}
+
+			void updateNext() {
+				if(current.node == nullptr)
+					return;
+
+				next.node = current.node->next;
+				if(next.node != nullptr)
+					next.instance = next.node->instance;
+				else
+					next.instance = 0;
+			}
+
+		public:
+			T& operator*() {
+				return *current;
+			}
+
+			Iterator operator++(int) {
+				return ++(*this);
+			}
+			Iterator operator++() {
+				ASSERT(current.node != nullptr);
+				ASSERT(next.node == nullptr || next.node->instance == next.instance);
+
+				current = next;
+				updateNext();
+
+				return *this;
+			}
+
+			bool operator==(Iterator other) {
+				//return current == other.current;
+				ASSERT(
+					(current.node != nullptr && other.current.node != nullptr)?
+						(current.node->instance == other.current.node->instance): true
+				);
+				return current.node == other.current.node;
+			}
+			bool operator!=(Iterator other) {
+				return !(*this == other);
+			}
 	};
 
 	T& operator[](Handle arg) {
 		return *arg;
 	}
 
-	Handle begin() {
+	Iterator begin() {
 		if(elementCount == 0)
-			return Handle(0, nullptr);
+			return Iterator(Handle(0, nullptr));
 		else
-			return Handle(usedHead->instance, usedHead);
+			return Iterator(Handle(usedHead->instance, usedHead));
 	}
-	Handle end() {
-		return Handle(0, nullptr);
+	Iterator end() {
+		return Iterator(Handle(0, nullptr));
 	}
 
+	void remove(Iterator arg) {
+		remove(arg.current);
+	}
 	void remove(Handle arg) {
 		ASSERT(elementCount > 0);
 		ASSERT(arg.node->instance == arg.instance);
 
+		ASSERT((usedHead == arg.node) == (arg.node->prev == nullptr));
+		ASSERT((usedTail == arg.node) == (arg.node->next == nullptr));
+
 		if(arg.node->prev == nullptr) {
+			ASSERT(usedHead == arg.node);
 			usedHead = arg.node->next;
+			if(usedHead != nullptr)
+				usedHead->prev = nullptr;
 			ASSERT(!(elementCount >= 2 && usedHead == nullptr));
 		}
 		else {
-			ASSERT(arg.node->prev != nullptr);
 			arg.node->prev->next = arg.node->next;
 		}
 
 		if(arg.node->next == nullptr) {
+			ASSERT(usedTail == arg.node);
 			usedTail = arg.node->prev;
+			if(usedTail != nullptr)
+				usedTail->next = nullptr;
 			ASSERT(!(elementCount >= 2 && usedTail == nullptr));
 		}
 		else {
-			ASSERT(arg.node->next != nullptr);
 			arg.node->next->prev = arg.node->prev;
 		}
 
-		arg.node->instance++;
-		arg.node->next = unusedHead;
-		unusedHead = arg.node;
+		ASSERT(arg.node->prev != nullptr || usedHead == arg.node->next);
+		ASSERT(arg.node->next != nullptr || usedTail == arg.node->prev);
+
+		pushUnused(arg.node);
 
 		elementCount--;
+		ASSERT((elementCount == 1)? (usedHead == usedTail): true);
 	}
 
 	Handle add(T element) {
@@ -135,11 +205,15 @@ public:
 		}
 
 		if(elementCount == nodeCount) {
+			ASSERT(arr != nullptr);
 			Node* node = arr->data + (elementCount % allocationSize);
 			node->instance = 0;
 			node->datum = element;
 			node->prev = usedTail;
 			node->next = nullptr;
+
+			ASSERT((elementCount == 0) == (usedTail == nullptr));
+
 			if(usedTail != nullptr)
 				usedTail->next = node;
 			usedTail = node;
@@ -149,27 +223,32 @@ public:
 			elementCount++;
 			nodeCount++;
 
+			ASSERT((elementCount == 1) == (node->prev == nullptr));
+
 			return Handle(0, node);
 		}
 		else {
-			ASSERT(unusedHead != nullptr);
-
-			Node* node = unusedHead;
-			unusedHead = node->next;
+			Node* node = popUnused();
 
 			if(elementCount == 0) {
+				ASSERT(usedTail == nullptr);
 				usedHead = node;
 			}
 			else {
+				ASSERT(usedTail != nullptr);
 				usedTail->next = node;
 			}
-			usedTail = node;
 
 			node->datum = element;
 			node->next = nullptr;
 			node->prev = usedTail;
 
+			usedTail = node;
+
 			elementCount++;
+			ASSERT(elementCount != 1 || usedHead == usedTail);
+
+			ASSERT((elementCount == 1) == (node->prev == nullptr));
 
 			return Handle(node->instance, node);
 		}

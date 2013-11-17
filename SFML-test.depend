@@ -344,7 +344,7 @@
 	<boost/cstdint.hpp>
 	<vector>
 
-1384515744 source:c:\users\flaise\repositories\sfml_components\src\tests\tests.cpp
+1384636075 source:c:\users\flaise\repositories\sfml_components\src\tests\tests.cpp
 	"catch.hpp"
 	"../sparsearray3.hpp"
 	"../sparsearray2.hpp"
@@ -436,7 +436,7 @@
 	<vector>
 	<assert.h>
 
-1384526164 c:\users\flaise\repositories\sfml_components\src\sparsearray3.hpp
+1384640107 c:\users\flaise\repositories\sfml_components\src\sparsearray3.hpp
 	"assert.hpp"
 
 1384522906 c:\users\flaise\repositories\sfml_components\src\sparsearray2.hpp
@@ -444,7 +444,7 @@
 	<boost/cstdint.hpp>
 	<vector>
 
-1384526402 source:c:\users\flaise\repositories\sfml_components\src\benchmark\benchmark.cpp
+1384646982 source:c:\users\flaise\repositories\sfml_components\src\benchmark\benchmark.cpp
 	<iostream>
 	<cstdlib>
 	<time.h>
@@ -453,6 +453,7 @@
 	"../sparsearray2.hpp"
 	"../sparsearray3.hpp"
 
-1384515358 c:\users\flaise\repositories\sfml_components\src\assert.hpp
-	<iostream>
+1384633311 c:\users\flaise\repositories\sfml_components\src\assert.hpp
+	<sstream>
+	<stdexcept>
 

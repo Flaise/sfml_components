@@ -2,3 +2,4 @@ obj/
 *.layout
 *.depend
 bin/
+*.cscope_file_list

@@ -1,18 +1,22 @@
 #ifndef ASSERT_HPP_INCLUDED
 #define ASSERT_HPP_INCLUDED
 
-
-#ifndef ASSERT_FAIL
-	#include <iostream>
-	#define ASSERT_FAIL(file, line) std::cout << "Assertion fail: " << "\nFile: " << file << "\nLine: " << line << "\n"
-#endif
-
 #ifdef DEBUG
-    #define ASSERT(a) \
-        do { if (!(a)) { ASSERT_FAIL(__FILE__, __LINE__); } } while(0)
+
+	#ifndef ASSERT_FAIL
+		#include <sstream>
+		#include <stdexcept>
+		void _assertFail(const char* file, int line) {
+			std::stringstream ss;
+			ss << "Assertion error at " << file << ":" << line;
+			throw std::runtime_error(ss.str());
+		}
+		#define ASSERT_FAIL(file, line) _assertFail(file, line)
+	#endif
+
+    #define ASSERT(a) ((void)(!(a)? (ASSERT_FAIL(__FILE__, __LINE__), 1): 1))
 #else
-    #define ASSERT(a) \
-        do { (void)sizeof(a); } while(0)
+    #define ASSERT(a) ((void)sizeof(a))
 #endif
 
 
