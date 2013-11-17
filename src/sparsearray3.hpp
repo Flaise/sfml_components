@@ -1,6 +1,7 @@
 #ifndef SPARSEARRAY3_HPP_INCLUDED
 #define SPARSEARRAY3_HPP_INCLUDED
 
+#include <boost/operators.hpp>
 #include "assert.hpp"
 
 

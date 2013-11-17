@@ -60,6 +60,18 @@
 					<Add option="-s" />
 				</Linker>
 			</Target>
+			<Target title="Benchmark-Debug">
+				<Option output="bin/Benchmark-Debug/SFML-test" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="bin/Benchmark-Debug/" />
+				<Option object_output="obj/Benchmark-Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-std=c++11" />
+					<Add option="-g" />
+					<Add option="-DDEBUG" />
+				</Compiler>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-std=c++11" />
@@ -70,43 +82,56 @@
 		<Linker>
 			<Add directory="C:/SFML-2.1/lib" />
 		</Linker>
+		<Unit filename="src/assert.hpp">
+			<Option target="Debug" />
+			<Option target="Tests" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Unit filename="src/assets/block-pushable.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/block.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/frame-arrow-east.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/frame-arrow-north.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/frame-arrow-south.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/frame-arrow-west.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/assets/frame.png">
 			<Option target="Debug" />
 			<Option target="Release" />
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/benchmark/benchmark.cpp">
 			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
 		</Unit>
 		<Unit filename="src/main.cpp">
 			<Option target="Debug" />
