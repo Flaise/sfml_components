@@ -13,6 +13,8 @@
 
 #include "sparsearray3.hpp"
 #include "framerate.hpp"
+#include "assets/block.h"
+#include "assets/whiterabbit.h"
 
 // no one's bothered to implement the std:: version of this in MinGW
 // something to do with C99, evidently
@@ -141,13 +143,10 @@ int main() {
 
 
     sf::Texture texture;
-    if(!texture.loadFromFile("src/assets/block.png")) {
-        return 1;
-    }
+    texture.loadFromMemory(block, sizeof(block));
+
     sf::Font font;
-	if(!font.loadFromFile("src/assets/whiterabbit.ttf")) {
-		return 2;
-	}
+    font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
 
     sf::Sprite sprite;
@@ -202,10 +201,10 @@ int main() {
 		sprite.setPosition((*x).currValue, (*y).currValue);
 		window.draw(sprite);
 
-		(*framerateText).message = framerate.current >= 0? "FPS:             " + to_string(framerate.current): "";
-		(*interpolandCountText).message =                  "interpolands:    " + to_string(interpolands.size());
-		(*interpolationCountText).message =                "interpolantions: " + to_string(interpolations.size());
-		(*textCountText).message =                         "texts:           " + to_string(texts.size());
+		(*framerateText).message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
+		(*interpolandCountText).message =                  "interpolands:   " + to_string(interpolands.size());
+		(*interpolationCountText).message =                "interpolations: " + to_string(interpolations.size());
+		(*textCountText).message =                         "texts:          " + to_string(texts.size());
 		UpdateTexts(&window);
 
 
