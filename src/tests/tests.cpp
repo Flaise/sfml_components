@@ -4,6 +4,20 @@
 
 #include "../sparsearray3.hpp"
 
+class Blah {
+public:
+	int one() { return 1; }
+};
+
+TEST_CASE("SA3 - dereferencing") {
+	SparseArray3<Blah> arr;
+	REQUIRE_THROWS(arr.end()->one());
+
+	auto handle = arr.add(Blah());
+	REQUIRE(handle->one() == 1);
+	REQUIRE(arr.begin()->one() == 1);
+}
+
 TEST_CASE("SA3 - 1000 elements - iteration") {
 	SparseArray3<int> arr;
 	for(int i = 0; i < 1000; i++)

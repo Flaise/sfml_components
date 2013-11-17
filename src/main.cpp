@@ -85,17 +85,17 @@ float GetDelta(Interpolation& interpolation) {
 
 void UpdateInterpolations(sf::Time dt) {
 	for(auto it = interpolands.begin(); it != interpolands.end(); it++)
-		(*it).currValue = (*it).baseValue;
+		it->currValue = it->baseValue;
 
 	for(auto it = interpolations.begin(); it != interpolations.end(); it++) {
-		(*it).elapsed += dt;
-		if((*it).elapsed >= (*it).duration) {
-			(*(*it).interpoland).currValue += (*it).destDelta;
-			(*(*it).interpoland).baseValue += (*it).destDelta;
+		it->elapsed += dt;
+		if(it->elapsed >= it->duration) {
+			it->interpoland->currValue += it->destDelta;
+			it->interpoland->baseValue += it->destDelta;
 			interpolations.remove(it);
 		}
 		else {
-			(*(*it).interpoland).currValue += GetDelta(*it);
+			it->interpoland->currValue += GetDelta(*it);
 		}
 	}
 }
@@ -128,9 +128,9 @@ void UpdateTexts(sf::RenderWindow* window) {
 	text.setColor(sf::Color::White);
 
 	for(auto it = texts.begin(); it != texts.end(); it++) {
-		text.setFont(*((*it).font));
-		text.setString((*it).message);
-		text.setPosition((*it).x, (*it).y);
+		text.setFont(*(it->font));
+		text.setString(it->message);
+		text.setPosition(it->x, it->y);
 		window->draw(text);
 	}
 }
@@ -138,34 +138,34 @@ void UpdateTexts(sf::RenderWindow* window) {
 //constexpr sf::Time one_second = sf::milliseconds(1000);
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "/\\/\\/\\/");
-    window.setKeyRepeatEnabled(false);
+	sf::RenderWindow window(sf::VideoMode(800, 600), "/\\/\\/\\/");
+	window.setKeyRepeatEnabled(false);
 
 
-    sf::Texture texture;
-    texture.loadFromMemory(block, sizeof(block));
+	sf::Texture texture;
+	texture.loadFromMemory(block, sizeof(block));
 
-    sf::Font font;
-    font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
-
-
-    sf::Sprite sprite;
-    sprite.setTexture(texture);
-
-    auto x = MakeInterpoland(0);
-    auto y = MakeInterpoland(200);
-
-    InterpolateTo(x, 100, sf::seconds(1), Tween::SINE);
-
-    auto framerateText = MakeDisplayText(&font, "", 0, 0, 0, 0);
-    auto interpolandCountText = MakeDisplayText(&font, "", 0, 15, 0, 0);
-    auto interpolationCountText = MakeDisplayText(&font, "", 0, 30, 0, 0);
-    auto textCountText = MakeDisplayText(&font, "", 0, 45, 0, 0);
+	sf::Font font;
+	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
 
-    sf::Clock frame;
-    Framerate<sf::Time> framerate(sf::seconds(1));
-    //Framerate<sf::Time, one_second> framerate;
+	sf::Sprite sprite;
+	sprite.setTexture(texture);
+
+	auto x = MakeInterpoland(0);
+	auto y = MakeInterpoland(200);
+
+	InterpolateTo(x, 100, sf::seconds(1), Tween::SINE);
+
+	auto framerateText = MakeDisplayText(&font, "", 0, 0, 0, 0);
+	auto interpolandCountText = MakeDisplayText(&font, "", 0, 15, 0, 0);
+	auto interpolationCountText = MakeDisplayText(&font, "", 0, 30, 0, 0);
+	auto textCountText = MakeDisplayText(&font, "", 0, 45, 0, 0);
+
+
+	sf::Clock frame;
+	Framerate<sf::Time> framerate(sf::seconds(1));
+	//Framerate<sf::Time, one_second> framerate;
 
     while(true) {
         sf::Event event;
@@ -198,13 +198,13 @@ int main() {
 
 		window.clear();
 
-		sprite.setPosition((*x).currValue, (*y).currValue);
+		sprite.setPosition(x->currValue, y->currValue);
 		window.draw(sprite);
 
-		(*framerateText).message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
-		(*interpolandCountText).message =                  "interpolands:   " + to_string(interpolands.size());
-		(*interpolationCountText).message =                "interpolations: " + to_string(interpolations.size());
-		(*textCountText).message =                         "texts:          " + to_string(texts.size());
+		framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
+		interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
+		interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
+		textCountText->message =                         "texts:          " + to_string(texts.size());
 		UpdateTexts(&window);
 
 

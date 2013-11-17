@@ -89,6 +89,11 @@ public:
 			ASSERT(node->instance == instance);
 			return node->datum;
 		}
+
+		T* operator->() {
+			ASSERT(node != nullptr);
+			return &(node->datum);
+		}
 	};
 
 	class Iterator {
@@ -116,6 +121,9 @@ public:
 		public:
 			T& operator*() {
 				return *current;
+			}
+			T* operator->() {
+				return current.operator->();
 			}
 
 			Iterator operator++(int) {
