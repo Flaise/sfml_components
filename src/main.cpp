@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <cstdlib> // for rand()
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
 	#include <boost/math/constants/constants.hpp>
@@ -135,11 +136,19 @@ void UpdateTexts(sf::RenderWindow* window) {
 	}
 }
 
+
+
 //constexpr sf::Time one_second = sf::milliseconds(1000);
 
 int main() {
+	srand(0);
+
 	sf::RenderWindow window(sf::VideoMode(800, 600), "/\\/\\/\\/");
+	//sf::Window window(sf::VideoMode(800, 600), "/\\/\\/\\/");
 	window.setKeyRepeatEnabled(false);
+
+	//const char* version = (const char*)glGetString(GL_VERSION);
+	//std::cout << version << std::endl;
 
 
 	sf::Texture texture;
@@ -157,15 +166,82 @@ int main() {
 
 	InterpolateTo(x, 100, sf::seconds(1), Tween::SINE);
 
-	auto framerateText = MakeDisplayText(&font, "", 0, 0, 0, 0);
-	auto interpolandCountText = MakeDisplayText(&font, "", 0, 15, 0, 0);
-	auto interpolationCountText = MakeDisplayText(&font, "", 0, 30, 0, 0);
-	auto textCountText = MakeDisplayText(&font, "", 0, 45, 0, 0);
+	auto framerateText = MakeDisplayText(&font, "", 0, window.getSize().y - 60, 0, 0);
+	auto interpolandCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 45, 0, 0);
+	auto interpolationCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 30, 0, 0);
+	auto textCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 15, 0, 0);
 
 
 	sf::Clock frame;
 	Framerate<sf::Time> framerate(sf::seconds(1));
 	//Framerate<sf::Time, one_second> framerate;
+
+	sf::RectangleShape debugPanelRect;
+	debugPanelRect.setPosition(sf::Vector2f(0, window.getSize().y - 60));
+	debugPanelRect.setSize(sf::Vector2f(300, 60));
+	debugPanelRect.setFillColor(sf::Color(128, 128, 128, 128));
+
+
+	sf::VertexArray triangle(sf::Triangles, 3);
+
+	// define the position of the triangle's points
+	triangle[0].position = sf::Vector2f(10, 10);
+	triangle[1].position = sf::Vector2f(100, 10);
+	triangle[2].position = sf::Vector2f(55, 100);
+
+	// define the color of the triangle's points
+	triangle[0].color = sf::Color::Red;
+	triangle[1].color = sf::Color::Blue;
+	triangle[2].color = sf::Color::Green;
+
+
+	unsigned int fireWidth = 50;
+	unsigned int fireHeight = 50;
+	unsigned int fireCells = fireWidth * fireHeight;
+	unsigned char fireIntensity[fireWidth * fireHeight];
+
+	/*for(int i = 0; i < sizeof(fireIntensity); i++) {
+		fireIntensity[i] = 100;
+	}
+	sf::VertexArray fireVA(sf::Quads, (fireWidth + (fireWidth - 2)) * (fireHeight + (fireHeight - 2)));
+
+	for(int x = 0; x < fireWidth; x++)
+		for(int y = 0; y < fireHeight) {
+			fireVA[x + y * fireWidth].position = sf::Vector2f(200 + x * 10, 100 + y * 10);
+			fireVA[x + y * fireWidth].position = sf::Vector2f(200 + x * 10, 100 + y * 10);
+		}*/
+	sf::RectangleShape fireRects[fireCells];
+	for(int x = 0; x < fireWidth; x++)
+		for(int y = 0; y < fireHeight; y++) {
+			fireRects[x + y * fireWidth].setSize(sf::Vector2f(2, 2));
+			fireRects[x + y * fireWidth].setPosition(sf::Vector2f(200 + x * 2, 100 + y * 2));
+			//fireRects[x + y * fireWidth].setFillColor(sf::Color(50, 55, 10));
+		}
+
+
+
+
+
+
+
+
+	sf::VertexArray rrr(sf::TrianglesStrip, 4);
+
+	//for(char* it = fireIntensity; it < fireIntensity + fireCells; it++)
+
+
+	rrr[0].position = sf::Vector2f(300, 300);
+	rrr[1].position = sf::Vector2f(350, 300);
+	rrr[2].position = sf::Vector2f(300, 350);
+	rrr[3].position = sf::Vector2f(350, 350);
+
+	rrr[0].color = sf::Color::Red;
+	rrr[1].color = sf::Color::Blue;
+	rrr[2].color = sf::Color::Green;
+	rrr[3].color = sf::Color::Yellow;
+
+
+	sf::Time fireTimer = sf::milliseconds(0);
 
     while(true) {
         sf::Event event;
@@ -201,12 +277,77 @@ int main() {
 		sprite.setPosition(x->currValue, y->currValue);
 		window.draw(sprite);
 
+		window.draw(debugPanelRect);
+
 		framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
 		interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
 		interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
 		textCountText->message =                         "texts:          " + to_string(texts.size());
 		UpdateTexts(&window);
 
+		window.draw(triangle);
+		window.draw(rrr);
+
+
+
+		fireTimer += dt;
+		if(fireTimer > sf::milliseconds(20)) {
+			fireTimer -= sf::milliseconds(20);
+
+			for(int x = 0; x < fireWidth; x++)
+				for(int y = 0; y < fireHeight; y++) {
+					//fireIntensity[x + y * fireHeight] = rand() % 255;
+					//continue;
+
+					int average = 0;
+					int ct = 0;
+
+					average += fireIntensity[x + y * fireWidth];
+					ct++;
+
+					if(x > 0) {
+						average += fireIntensity[x - 1 + y * fireWidth];
+						ct++;
+					}
+					if(x < fireWidth - 1) {
+						average += fireIntensity[x + 1 + y * fireWidth];
+						ct++;
+					}
+					if(y > 0) {
+						average += fireIntensity[x + (y - 1) * fireWidth];
+						ct++;
+					}
+					if(y < fireHeight - 1) {
+						average += fireIntensity[x + (y + 1) * fireWidth] * 3;
+						ct += 3;
+					}
+					average /= ct;
+
+					if(y == fireHeight - 1)
+						average += rand() % 15;
+					else
+						average += (rand() % 5 == 0)? (rand() % 60 - 50): 0;
+						//average -= rand() % 10;
+
+					if(average > 128)
+						average += 2;
+					else
+						average -= 2;
+
+					if(average > 255)
+						average = 255;
+					else if(average < 0)
+						average = 0;
+
+					fireIntensity[x + y * fireWidth] = average;
+				}
+		}
+
+
+		for(int i = 0; i < fireCells; i++)
+			fireRects[i].setFillColor(sf::Color(fireIntensity[i], fireIntensity[i] / 2, fireIntensity[i] / 5, fireIntensity[i]));
+		for(int i = 0; i < fireCells; i++)
+			window.draw(fireRects[i]);
 
 		window.display();
     }
