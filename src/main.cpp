@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/OpenGL.hpp>
 
 #include <iostream>
 #include <string>
@@ -13,6 +14,7 @@
 #pragma GCC diagnostic pop // reenable warnings
 
 #include "sparsearray3.hpp"
+#include "interpolation.hpp"
 #include "framerate.hpp"
 #include "assets/block.h"
 #include "assets/whiterabbit.h"
@@ -23,82 +25,6 @@ std::string to_string(int i) {
 	std::stringstream s;
 	s << i;
 	return s.str();
-}
-
-
-struct Interpoland {
-	float baseValue;
-	float currValue;
-	float destValue;
-
-	Interpoland() {}
-	Interpoland(float value): baseValue(value), currValue(value), destValue(value) {}
-};
-using InterpolandHandle = SparseArray3<Interpoland, 100>::Handle;
-using SAInterpoland = SparseArray3<Interpoland, 100>;
-
-using TweenFunc = std::function<float(float)>;
-
-struct Interpolation {
-	InterpolandHandle interpoland;
-	float destDelta;
-	sf::Time duration;
-	sf::Time elapsed;
-	TweenFunc scaling;
-
-	Interpolation() {}
-	Interpolation(InterpolandHandle interpoland, float delta, sf::Time duration, TweenFunc func):
-		interpoland(interpoland), destDelta(delta), duration(duration), elapsed(sf::milliseconds(0)), scaling(func) {}
-};
-using SAInterpolation = SparseArray3<Interpolation, 200>;
-
-
-SAInterpoland interpolands;
-SAInterpolation interpolations;
-
-auto MakeInterpoland(float value) {
-	return interpolands.add(Interpoland(value));
-}
-
-
-namespace Tween {
-	const float pi = boost::math::constants::pi<float>();
-	const float pi_2 = pi / 2;
-
-	float Linear(float progress) { return progress; }
-	float DelayBefore(float progress) { return 0; }
-	float DelayAfter(float progress) { return 1; }
-	float SINE_INOUT(float progress) { return sinf(2 * (progress * pi_2) - pi_2) / 2 + .5f; }
-	float SINE(float progress) { return sinf(progress * pi_2); }
-}
-
-
-auto Interpolate(InterpolandHandle interpoland, float delta, sf::Time duration, TweenFunc func) {
-	return interpolations.add(Interpolation(interpoland, delta, duration, func));
-}
-auto InterpolateTo(InterpolandHandle interpoland, float dest, sf::Time duration, TweenFunc func) {
-	return Interpolate(interpoland, dest - (*interpoland).destValue, duration, func);
-}
-
-float GetDelta(Interpolation& interpolation) {
-	return interpolation.destDelta * interpolation.scaling(interpolation.elapsed.asSeconds() / interpolation.duration.asSeconds());
-}
-
-void UpdateInterpolations(sf::Time dt) {
-	for(auto it = interpolands.begin(); it != interpolands.end(); it++)
-		it->currValue = it->baseValue;
-
-	for(auto it = interpolations.begin(); it != interpolations.end(); it++) {
-		it->elapsed += dt;
-		if(it->elapsed >= it->duration) {
-			it->interpoland->currValue += it->destDelta;
-			it->interpoland->baseValue += it->destDelta;
-			interpolations.remove(it);
-		}
-		else {
-			it->interpoland->currValue += GetDelta(*it);
-		}
-	}
 }
 
 
@@ -136,6 +62,38 @@ void UpdateTexts(sf::RenderWindow* window) {
 	}
 }
 
+
+struct Vertex {
+	struct { GLfloat x, y; } position;
+	struct { GLfloat r, g, b, a; } color;
+};
+void DrawVertices(GLenum mode, Vertex* vertices, GLushort* indices, size_t numIndices) {
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glVertexPointer(2, GL_FLOAT, sizeof(Vertex), &vertices->position);
+	glColorPointer(4, GL_FLOAT, sizeof(Vertex), &vertices->color);
+	glDrawElements(mode, numIndices, GL_UNSIGNED_SHORT, indices);
+}
+
+
+Vertex Vertices[] = {
+	{ { 0, 0 }, { .4f, .9f, .4f, 1 } },
+	{ { .5f, 0 }, { .8f, .4f, .1f, 1 } },
+	{ { 0, .5f }, { .4f, .4f, .4f, 1 } }
+};
+//int NumVertices = sizeof(Vertices) / sizeof(Vertex);
+
+GLushort Indices[] = {
+	0, 1, 2
+};
+int NumIndices = sizeof(Indices) / sizeof(GLushort);
+
+void DrawThing() {
+	DrawVertices(GL_TRIANGLES, Vertices, Indices, NumIndices);
+}
 
 
 //constexpr sf::Time one_second = sf::milliseconds(1000);
@@ -182,74 +140,59 @@ int main() {
 	debugPanelRect.setFillColor(sf::Color(128, 128, 128, 128));
 
 
-	sf::VertexArray triangle(sf::Triangles, 3);
-
-	// define the position of the triangle's points
-	triangle[0].position = sf::Vector2f(10, 10);
-	triangle[1].position = sf::Vector2f(100, 10);
-	triangle[2].position = sf::Vector2f(55, 100);
-
-	// define the color of the triangle's points
-	triangle[0].color = sf::Color::Red;
-	triangle[1].color = sf::Color::Blue;
-	triangle[2].color = sf::Color::Green;
-
-
-	unsigned int fireWidth = 50;
-	unsigned int fireHeight = 50;
-	unsigned int fireCells = fireWidth * fireHeight;
+	size_t fireWidth = 100;
+	size_t fireHeight = 100;
+	size_t fireVertCount = fireWidth * fireHeight;
 	unsigned char fireIntensity[fireWidth * fireHeight];
 
-	/*for(int i = 0; i < sizeof(fireIntensity); i++) {
-		fireIntensity[i] = 100;
+	Vertex fireVerts[fireVertCount];
+
+	size_t fireCellCount = (fireWidth - 1) * (fireHeight - 1);
+
+	GLushort fireIndices[fireCellCount * 4];
+	int fireIndexCount = fireCellCount * 4;
+	{
+		GLushort* fireIndex = fireIndices;
+		for(int x = 0; x < fireWidth - 1; x++)
+			for(int y = 0; y < fireHeight - 1; y++) {
+
+				fireVerts[x + y * fireWidth].position = { float(x) / (fireWidth - 1) - .5, float(y) / (fireHeight - 1) - .5 };
+				*fireIndex = x + y * fireWidth;
+				fireIndex++;
+
+				fireVerts[x + 1 + y * fireWidth].position = { float(x + 1) / (fireWidth - 1) - .5, float(y) / (fireHeight - 1) - .5 };
+				*fireIndex = x + 1 + y * fireWidth;
+				fireIndex++;
+
+				fireVerts[x + 1 + (y + 1) * fireWidth].position = { float(x + 1) / (fireWidth - 1) - .5, float(y + 1) / (fireHeight - 1) - .5 };
+				*fireIndex = x + 1 + (y + 1) * fireWidth;
+				fireIndex++;
+
+				fireVerts[x + (y + 1) * fireWidth].position = { float(x) / (fireWidth - 1) - .5, float(y + 1) / (fireHeight - 1) - .5 };
+				*fireIndex = x + (y + 1) * fireWidth;
+				fireIndex++;
+
+				ASSERT(fireIndex <= fireIndices + fireIndexCount);
+			}
 	}
-	sf::VertexArray fireVA(sf::Quads, (fireWidth + (fireWidth - 2)) * (fireHeight + (fireHeight - 2)));
-
-	for(int x = 0; x < fireWidth; x++)
-		for(int y = 0; y < fireHeight) {
-			fireVA[x + y * fireWidth].position = sf::Vector2f(200 + x * 10, 100 + y * 10);
-			fireVA[x + y * fireWidth].position = sf::Vector2f(200 + x * 10, 100 + y * 10);
-		}*/
-	sf::RectangleShape fireRects[fireCells];
-	for(int x = 0; x < fireWidth; x++)
-		for(int y = 0; y < fireHeight; y++) {
-			fireRects[x + y * fireWidth].setSize(sf::Vector2f(2, 2));
-			fireRects[x + y * fireWidth].setPosition(sf::Vector2f(200 + x * 2, 100 + y * 2));
-			//fireRects[x + y * fireWidth].setFillColor(sf::Color(50, 55, 10));
-		}
 
 
 
 
 
 
-
-
-	sf::VertexArray rrr(sf::TrianglesStrip, 4);
-
-	//for(char* it = fireIntensity; it < fireIntensity + fireCells; it++)
-
-
-	rrr[0].position = sf::Vector2f(300, 300);
-	rrr[1].position = sf::Vector2f(350, 300);
-	rrr[2].position = sf::Vector2f(300, 350);
-	rrr[3].position = sf::Vector2f(350, 350);
-
-	rrr[0].color = sf::Color::Red;
-	rrr[1].color = sf::Color::Blue;
-	rrr[2].color = sf::Color::Green;
-	rrr[3].color = sf::Color::Yellow;
 
 
 	sf::Time fireTimer = sf::milliseconds(0);
 
+	glViewport(0, 0, window.getSize().x, window.getSize().y);
     while(true) {
         sf::Event event;
         while(window.pollEvent(event)) {
             if(event.type == sf::Event::Closed)
                 window.close();
 			else if(event.type == sf::Event::Resized) {
-
+				glViewport(0, 0, event.size.width, event.size.height);
 			}
 			else if(event.type == sf::Event::KeyPressed) {
 				if(event.key.code == sf::Keyboard::Key::Up)
@@ -271,25 +214,6 @@ int main() {
 
 		UpdateInterpolations(dt);
 
-
-		window.clear();
-
-		sprite.setPosition(x->currValue, y->currValue);
-		window.draw(sprite);
-
-		window.draw(debugPanelRect);
-
-		framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
-		interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
-		interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
-		textCountText->message =                         "texts:          " + to_string(texts.size());
-		UpdateTexts(&window);
-
-		window.draw(triangle);
-		window.draw(rrr);
-
-
-
 		fireTimer += dt;
 		if(fireTimer > sf::milliseconds(20)) {
 			fireTimer -= sf::milliseconds(20);
@@ -307,12 +231,13 @@ int main() {
 
 					if(x > 0) {
 						average += fireIntensity[x - 1 + y * fireWidth];
-						ct++;
 					}
+					ct++;
 					if(x < fireWidth - 1) {
 						average += fireIntensity[x + 1 + y * fireWidth];
-						ct++;
 					}
+					ct++;
+
 					if(y > 0) {
 						average += fireIntensity[x + (y - 1) * fireWidth];
 						ct++;
@@ -323,16 +248,17 @@ int main() {
 					}
 					average /= ct;
 
-					if(y == fireHeight - 1)
-						average += rand() % 15;
-					else
-						average += (rand() % 5 == 0)? (rand() % 60 - 50): 0;
+					if(y == fireHeight - 1)// && x > fireWidth / 5 && x < fireWidth * 4 / 5)
+						average += rand() % 12;
+					else {
+						average += (rand() % 15 == 0)? (rand() % 90 - 70): 0;
 						//average -= rand() % 10;
 
-					if(average > 128)
-						average += 2;
-					else
-						average -= 2;
+						if(average > 128)
+							average += 1;
+						else
+							average -= 1;
+					}
 
 					if(average > 255)
 						average = 255;
@@ -342,12 +268,47 @@ int main() {
 					fireIntensity[x + y * fireWidth] = average;
 				}
 		}
+		for(int i = 0; i < fireVertCount; i++) {
+			fireVerts[i].color = {
+				fireIntensity[i] / 255.0f,
+				fireIntensity[i] / 255.0f / 2,
+				fireIntensity[i] / 255.0f / 5,
+				fireIntensity[i] / 255.0f
+			};
+		}
 
 
-		for(int i = 0; i < fireCells; i++)
-			fireRects[i].setFillColor(sf::Color(fireIntensity[i], fireIntensity[i] / 2, fireIntensity[i] / 5, fireIntensity[i]));
-		for(int i = 0; i < fireCells; i++)
-			window.draw(fireRects[i]);
+
+		glClear(GL_COLOR_BUFFER_BIT);
+
+
+		window.pushGLStates();
+			sprite.setPosition(x->currValue, y->currValue);
+			window.draw(sprite);
+
+			window.draw(debugPanelRect);
+
+			framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
+			interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
+			interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
+			textCountText->message =                         "texts:          " + to_string(texts.size());
+			UpdateTexts(&window);
+
+		window.popGLStates();
+
+		glLoadIdentity();
+		glOrtho(
+			-float(window.getSize().x) / window.getSize().y / 2, // left
+			float(window.getSize().x) / window.getSize().y / 2, // right
+			.5, // bottom
+			-.5, // top
+			-1, // near
+			1 // far
+		);
+
+		DrawThing();
+		DrawVertices(GL_QUADS, fireVerts, fireIndices, fireIndexCount);
+
 
 		window.display();
     }
