@@ -76,24 +76,66 @@ void DrawVertices(GLenum mode, Vertex* vertices, GLushort* indices, size_t numIn
 	glVertexPointer(2, GL_FLOAT, sizeof(Vertex), &vertices->position);
 	glColorPointer(4, GL_FLOAT, sizeof(Vertex), &vertices->color);
 	glDrawElements(mode, numIndices, GL_UNSIGNED_SHORT, indices);
+
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisable(GL_BLEND);
 }
 
 
-Vertex Vertices[] = {
-	{ { 0, 0 }, { .4f, .9f, .4f, 1 } },
-	{ { .5f, 0 }, { .8f, .4f, .1f, 1 } },
-	{ { 0, .5f }, { .4f, .4f, .4f, 1 } }
-};
-//int NumVertices = sizeof(Vertices) / sizeof(Vertex);
 
-GLushort Indices[] = {
-	0, 1, 2
+struct SpriteVert {
+	struct { GLfloat x, y; } position;
+	struct { GLfloat u, v; } tex;
 };
-int NumIndices = sizeof(Indices) / sizeof(GLushort);
+SpriteVert spriteVerts[] = {
+	{ { -.5f, -.5f }, { 0, 0 } },
+	{ { .5f, -.5f }, { 1, 0 } },
+	{ { .5f, .5f }, { 1, 1 } },
+	{ { -.5f, .5f }, { 0, 1 } }
+};
 
-void DrawThing() {
-	DrawVertices(GL_TRIANGLES, Vertices, Indices, NumIndices);
+
+struct Sprite {
+	struct { InterpolandHandle x, y; } position;
+	struct { GLfloat r, g, b, a; } color;
+	sf::Texture* texture;
+};
+using SpriteHandle = SparseArray3<Sprite, 100>::Handle;
+using SASprite = SparseArray3<Sprite, 100>;
+
+SASprite sprites;
+
+SpriteHandle MakeSprite(InterpolandHandle x, InterpolandHandle y, sf::Texture* texture) {
+	return sprites.add({ { x, y }, { 1, 1, 1, 1 }, texture });
 }
+
+void UpdateSprites() {
+	glEnable(GL_TEXTURE_2D);
+
+	for(auto it = sprites.begin(); it != sprites.end(); it++) {
+		sf::Texture::bind(it->texture);
+
+
+		glPushMatrix();
+		glTranslatef(it->position.x->currValue, it->position.y->currValue, 0);
+		glBegin(GL_QUADS);
+
+		glColor4fv(&it->color.r);
+
+		for(int i = 0; i < 4; i++) {
+			glTexCoord2fv(&spriteVerts[i].tex.u);
+			glVertex2fv(&spriteVerts[i].position.x);
+		}
+
+		glEnd();
+		glPopMatrix();
+	}
+
+	glDisable(GL_TEXTURE_2D);
+}
+
 
 
 //constexpr sf::Time one_second = sf::milliseconds(1000);
@@ -105,8 +147,8 @@ int main() {
 	//sf::Window window(sf::VideoMode(800, 600), "/\\/\\/\\/");
 	window.setKeyRepeatEnabled(false);
 
-	//const char* version = (const char*)glGetString(GL_VERSION);
-	//std::cout << version << std::endl;
+	const char* version = (const char*)glGetString(GL_VERSION);
+	std::cout << version << std::endl;
 
 
 	sf::Texture texture;
@@ -116,13 +158,11 @@ int main() {
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
 
-	sf::Sprite sprite;
-	sprite.setTexture(texture);
-
 	auto x = MakeInterpoland(0);
-	auto y = MakeInterpoland(200);
+	auto y = MakeInterpoland(0);
+	auto sprite = MakeSprite(x, y, &texture);
 
-	InterpolateTo(x, 100, sf::seconds(1), Tween::SINE);
+	InterpolateTo(x, 1, sf::seconds(1), Tween::SINE);
 
 	auto framerateText = MakeDisplayText(&font, "", 0, window.getSize().y - 60, 0, 0);
 	auto interpolandCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 45, 0, 0);
@@ -196,13 +236,13 @@ int main() {
 			}
 			else if(event.type == sf::Event::KeyPressed) {
 				if(event.key.code == sf::Keyboard::Key::Up)
-					Interpolate(y, -100, sf::seconds(1), Tween::SINE);
+					Interpolate(y, -1, sf::seconds(1), Tween::SINE);
 				else if(event.key.code == sf::Keyboard::Key::Down)
-					Interpolate(y, 100, sf::seconds(1), Tween::SINE);
+					Interpolate(y, 1, sf::seconds(1), Tween::SINE);
 				else if(event.key.code == sf::Keyboard::Key::Right)
-					Interpolate(x, 100, sf::seconds(1), Tween::SINE);
+					Interpolate(x, 1, sf::seconds(1), Tween::SINE);
 				else if(event.key.code == sf::Keyboard::Key::Left)
-					Interpolate(x, -100, sf::seconds(1), Tween::SINE);
+					Interpolate(x, -1, sf::seconds(1), Tween::SINE);
 			}
         }
         if(!window.isOpen())
@@ -283,9 +323,6 @@ int main() {
 
 
 		window.pushGLStates();
-			sprite.setPosition(x->currValue, y->currValue);
-			window.draw(sprite);
-
 			window.draw(debugPanelRect);
 
 			framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
@@ -296,17 +333,19 @@ int main() {
 
 		window.popGLStates();
 
+		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(
-			-float(window.getSize().x) / window.getSize().y / 2, // left
-			float(window.getSize().x) / window.getSize().y / 2, // right
-			.5, // bottom
-			-.5, // top
+			-float(window.getSize().x) / window.getSize().y / 2 * 6, // left
+			float(window.getSize().x) / window.getSize().y / 2 * 6, // right
+			.5 * 6, // bottom
+			-.5 * 6, // top
 			-1, // near
 			1 // far
 		);
+		glMatrixMode(GL_MODELVIEW);
 
-		DrawThing();
+		UpdateSprites();
 		DrawVertices(GL_QUADS, fireVerts, fireIndices, fireIndexCount);
 
 
