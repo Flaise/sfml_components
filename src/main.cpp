@@ -137,6 +137,44 @@ void DrawSprites() {
 }
 
 
+#include <unordered_set>
+#include <boost/cstdint.hpp>
+#include <boost/operators.hpp>
+struct Vec2i: boost::addable<Vec2i> {
+	int16_t x, y;
+
+	Vec2i() {}
+	Vec2i(int16_t x, int16_t y): x(x), y(y) {}
+
+	Vec2i& operator+=(const Vec2i& other) {
+		this->x += other.x;
+		this->y += other.y;
+		return *this;
+	}
+};
+struct Vec2iHash {
+	size_t operator()(const Vec2i& vec) const {
+		return static_cast<size_t>(vec.x) ^ (static_cast<size_t>(vec.y) << 16);
+	}
+};
+struct Vec2iEqual {
+	bool operator()(const Vec2i& a, const Vec2i& b) const {
+		return a.x == b.x && a.y == b.y;
+	}
+};
+
+std::unordered_set<Vec2i, Vec2iHash, Vec2iEqual> obstacles;
+
+Vec2i MakeObstacle(uint16_t x, uint16_t y) {
+	obstacles.insert({ x, y });
+	return {x, y};
+}
+
+
+void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
+	MakeSprite(MakeInterpoland(x), MakeInterpoland(y), texture);
+	obstacles.insert({x, y});
+}
 
 enum class Direction4: unsigned char {
 	NORTH, EAST, SOUTH, WEST, NONE
@@ -146,6 +184,7 @@ Direction4 RandomDirection4() {
 }
 
 struct Agent {
+	Vec2i obstacle;
 	InterpolandHandle x, y;
 	Direction4 direction;
 	sf::Time timePerMove;
@@ -156,7 +195,19 @@ using AgentHandle = SparseArray3<Agent, 20>::Handle;
 SparseArray3<Agent, 20> agents;
 
 AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
-	return agents.add({ x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
+	return agents.add({ {x->currValue, y->currValue}, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
+}
+
+bool _moveAgent(Agent* agent, int16_t dx, int16_t dy) {
+	if(obstacles.count(agent->obstacle + Vec2i(dx, dy))) {
+		agent->timeUntilNextMove = sf::microseconds(0);
+		return false;
+	}
+	obstacles.erase(agent->obstacle);
+	agent->obstacle += Vec2i(dx, dy);
+	obstacles.insert(agent->obstacle);
+	agent->timeUntilNextMove += agent->timePerMove;
+	return true;
 }
 
 void UpdateAgents(sf::Time dt) {
@@ -164,24 +215,26 @@ void UpdateAgents(sf::Time dt) {
 		it->timeUntilNextMove -= dt;
 		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
 			auto duration = it->timePerMove + it->timeUntilNextMove;
-			std::cout << duration.asMilliseconds() << "\n";
-			it->timeUntilNextMove = duration;
 
 			switch(it->direction) {
 				case Direction4::NONE:
 					it->timeUntilNextMove = sf::microseconds(0);
 					break;
 				case Direction4::NORTH:
-					Interpolate(it->y, -1, duration, Tween::Linear);
+					if(_moveAgent(&(*it), 0, -1))
+						Interpolate(it->y, -1, duration, Tween::Linear);
 					break;
 				case Direction4::EAST:
-					Interpolate(it->x, 1, duration, Tween::Linear);
+					if(_moveAgent(&(*it), 1, 0))
+						Interpolate(it->x, 1, duration, Tween::Linear);
 					break;
 				case Direction4::SOUTH:
-					Interpolate(it->y, 1, duration, Tween::Linear);
+					if(_moveAgent(&(*it), 0, 1))
+						Interpolate(it->y, 1, duration, Tween::Linear);
 					break;
 				case Direction4::WEST:
-					Interpolate(it->x, -1, duration, Tween::Linear);
+					if(_moveAgent(&(*it), -1, 0))
+						Interpolate(it->x, -1, duration, Tween::Linear);
 					break;
 				default:
 					ASSERT(false);
@@ -238,8 +291,6 @@ void UpdateWanderAIs(sf::Time dt) {
 }
 
 
-
-
 //constexpr sf::Time one_second = sf::milliseconds(1000);
 int main() {
 	srand(0);
@@ -258,9 +309,14 @@ int main() {
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
+	MakeWall(-1, -1, &texture);
+	MakeWall(-1, -2, &texture);
+	MakeWall(-2, -2, &texture);
+
 	{
 		auto x = MakeInterpoland(2);
 		auto y = MakeInterpoland(1);
+		obstacles.insert({2, 1});
 		MakeSprite(x, y, &texture);
 		auto agent = MakeAgent(x, y, sf::milliseconds(1000));
 		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(3500));
@@ -268,6 +324,7 @@ int main() {
 
 	auto x = MakeInterpoland(0);
 	auto y = MakeInterpoland(1);
+	obstacles.insert({0, 1});
 	MakeSprite(x, y, &texture);
 	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
 

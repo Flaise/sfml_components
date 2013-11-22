@@ -7,8 +7,8 @@ template<class TimeType>
 class Framerate {
 private:
 	const TimeType period;
-	TimeType time;
-	int frames;
+	TimeType time = sf::milliseconds(0);
+	int frames = 0;
 
 public:
 	int current = -1;
