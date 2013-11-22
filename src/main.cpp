@@ -141,6 +141,9 @@ void DrawSprites() {
 enum class Direction4: unsigned char {
 	NORTH, EAST, SOUTH, WEST, NONE
 };
+Direction4 RandomDirection4() {
+	return static_cast<Direction4>(rand() % 4);
+}
 
 struct Agent {
 	InterpolandHandle x, y;
@@ -148,9 +151,9 @@ struct Agent {
 	sf::Time timePerMove;
 	sf::Time timeUntilNextMove;
 };
-using AgentHandle = SparseArray3<Agent>::Handle;
+using AgentHandle = SparseArray3<Agent, 20>::Handle;
 
-SparseArray3<Agent> agents;
+SparseArray3<Agent, 20> agents;
 
 AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
 	return agents.add({ x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
@@ -160,12 +163,14 @@ void UpdateAgents(sf::Time dt) {
 	for(auto it = agents.begin(); it != agents.end(); it++) {
 		it->timeUntilNextMove -= dt;
 		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
-			auto duration = it->timePerMove - it->timeUntilNextMove;
+			auto duration = it->timePerMove + it->timeUntilNextMove;
+			std::cout << duration.asMilliseconds() << "\n";
+			it->timeUntilNextMove = duration;
 
 			switch(it->direction) {
 				case Direction4::NONE:
 					it->timeUntilNextMove = sf::microseconds(0);
-					return;
+					break;
 				case Direction4::NORTH:
 					Interpolate(it->y, -1, duration, Tween::Linear);
 					break;
@@ -181,15 +186,9 @@ void UpdateAgents(sf::Time dt) {
 				default:
 					ASSERT(false);
 			}
-			it->timeUntilNextMove = duration;
 		}
 	}
 }
-
-
-
-//constexpr sf::Time one_second = sf::milliseconds(1000);
-
 
 void SetAgentDirection(AgentHandle agent, bool up, bool right, bool down, bool left) {
 	// Only change direction when exactly one button is pressed. Stop when nothing is pressed.
@@ -211,6 +210,37 @@ void SetAgentDirection(AgentHandle agent, bool up, bool right, bool down, bool l
 }
 
 
+
+
+struct WanderAI {
+	AgentHandle agent;
+	sf::Time minTime, maxTime, timeUntilNextMove;
+};
+using WanderAIHandle = SparseArray3<WanderAI, 20>::Handle;
+
+SparseArray3<WanderAI, 20> wanderAIs;
+
+WanderAIHandle MakeWanderAI(AgentHandle agent, sf::Time minTime, sf::Time maxTime) {
+	return wanderAIs.add({ agent, minTime, maxTime, sf::milliseconds(0) });
+}
+
+void UpdateWanderAIs(sf::Time dt) {
+	for(auto it = wanderAIs.begin(); it != wanderAIs.end(); it++) {
+		it->timeUntilNextMove -= dt;
+		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
+			it->timeUntilNextMove += it->minTime + sf::milliseconds(rand() % it->maxTime.asMilliseconds());
+			it->agent->direction = RandomDirection4();
+		}
+		else {
+			it->agent->direction = Direction4::NONE;
+		}
+	}
+}
+
+
+
+
+//constexpr sf::Time one_second = sf::milliseconds(1000);
 int main() {
 	srand(0);
 
@@ -228,11 +258,17 @@ int main() {
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
+	{
+		auto x = MakeInterpoland(2);
+		auto y = MakeInterpoland(1);
+		MakeSprite(x, y, &texture);
+		auto agent = MakeAgent(x, y, sf::milliseconds(1000));
+		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(3500));
+	}
 
 	auto x = MakeInterpoland(0);
 	auto y = MakeInterpoland(1);
 	MakeSprite(x, y, &texture);
-	//InterpolateTo(x, 1, sf::seconds(1), Tween::SINE);
 	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
 
 	bool up = false;
@@ -241,7 +277,6 @@ int main() {
 	bool left = false;
 
 
-	MakeSprite(MakeInterpoland(2), MakeInterpoland(1), &texture);
 
 	auto framerateText = MakeDisplayText(&font, "", 0, window.getSize().y - 60, 0, 0);
 	auto interpolandCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 45, 0, 0);
@@ -269,18 +304,6 @@ int main() {
 				glViewport(0, 0, event.size.width, event.size.height);
 			}
 			else if(event.type == sf::Event::KeyPressed) {
-				/*if(event.key.code == sf::Keyboard::Key::Up)
-					//Interpolate(y, -1, sf::seconds(1), Tween::SINE);
-					playerAgent->direction = Direction4::NORTH;
-				else if(event.key.code == sf::Keyboard::Key::Down)
-					//Interpolate(y, 1, sf::seconds(1), Tween::SINE);
-					playerAgent->direction = Direction4::SOUTH;
-				else if(event.key.code == sf::Keyboard::Key::Right)
-					//Interpolate(x, 1, sf::seconds(1), Tween::SINE);
-					playerAgent->direction = Direction4::EAST;
-				else if(event.key.code == sf::Keyboard::Key::Left)
-					//Interpolate(x, -1, sf::seconds(1), Tween::SINE);
-					playerAgent->direction = Direction4::WEST;*/
 				if(event.key.code == sf::Keyboard::Key::Up)
 					up = true;
 				else if(event.key.code == sf::Keyboard::Key::Down)
@@ -310,6 +333,7 @@ int main() {
 		sf::Time dt = frame.restart();
 		framerate.update(dt);
 
+		UpdateWanderAIs(dt);
 		UpdateAgents(dt);
 		UpdateInterpolations(dt);
 
