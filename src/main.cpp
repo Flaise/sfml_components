@@ -111,7 +111,7 @@ SpriteHandle MakeSprite(InterpolandHandle x, InterpolandHandle y, sf::Texture* t
 	return sprites.add({ { x, y }, { 1, 1, 1, 1 }, texture });
 }
 
-void UpdateSprites() {
+void DrawSprites() {
 	glEnable(GL_TEXTURE_2D);
 
 	for(auto it = sprites.begin(); it != sprites.end(); it++) {
@@ -138,7 +138,78 @@ void UpdateSprites() {
 
 
 
+enum class Direction4: unsigned char {
+	NORTH, EAST, SOUTH, WEST, NONE
+};
+
+struct Agent {
+	InterpolandHandle x, y;
+	Direction4 direction;
+	sf::Time timePerMove;
+	sf::Time timeUntilNextMove;
+};
+using AgentHandle = SparseArray3<Agent>::Handle;
+
+SparseArray3<Agent> agents;
+
+AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
+	return agents.add({ x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
+}
+
+void UpdateAgents(sf::Time dt) {
+	for(auto it = agents.begin(); it != agents.end(); it++) {
+		it->timeUntilNextMove -= dt;
+		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
+			auto duration = it->timePerMove - it->timeUntilNextMove;
+
+			switch(it->direction) {
+				case Direction4::NONE:
+					it->timeUntilNextMove = sf::microseconds(0);
+					return;
+				case Direction4::NORTH:
+					Interpolate(it->y, -1, duration, Tween::Linear);
+					break;
+				case Direction4::EAST:
+					Interpolate(it->x, 1, duration, Tween::Linear);
+					break;
+				case Direction4::SOUTH:
+					Interpolate(it->y, 1, duration, Tween::Linear);
+					break;
+				case Direction4::WEST:
+					Interpolate(it->x, -1, duration, Tween::Linear);
+					break;
+				default:
+					ASSERT(false);
+			}
+			it->timeUntilNextMove = duration;
+		}
+	}
+}
+
+
+
 //constexpr sf::Time one_second = sf::milliseconds(1000);
+
+
+void SetAgentDirection(AgentHandle agent, bool up, bool right, bool down, bool left) {
+	// Only change direction when exactly one button is pressed. Stop when nothing is pressed.
+	if(!up && !down && !right && !left) {
+		agent->direction = Direction4::NONE;
+	}
+	else if(up && !down && !right && !left) {
+		agent->direction = Direction4::NORTH;
+	}
+	else if(down && !up && !right && !left) {
+		agent->direction = Direction4::SOUTH;
+	}
+	else if(right && !left && !up && !down) {
+		agent->direction = Direction4::EAST;
+	}
+	else if(left && !right && !up && !down) {
+		agent->direction = Direction4::WEST;
+	}
+}
+
 
 int main() {
 	srand(0);
@@ -159,73 +230,36 @@ int main() {
 
 
 	auto x = MakeInterpoland(0);
-	auto y = MakeInterpoland(0);
-	auto sprite = MakeSprite(x, y, &texture);
+	auto y = MakeInterpoland(1);
+	MakeSprite(x, y, &texture);
+	//InterpolateTo(x, 1, sf::seconds(1), Tween::SINE);
+	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
 
-	InterpolateTo(x, 1, sf::seconds(1), Tween::SINE);
+	bool up = false;
+	bool down = false;
+	bool right = false;
+	bool left = false;
+
+
+	MakeSprite(MakeInterpoland(2), MakeInterpoland(1), &texture);
 
 	auto framerateText = MakeDisplayText(&font, "", 0, window.getSize().y - 60, 0, 0);
 	auto interpolandCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 45, 0, 0);
 	auto interpolationCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 30, 0, 0);
 	auto textCountText = MakeDisplayText(&font, "", 0, window.getSize().y - 15, 0, 0);
-
-
-	sf::Clock frame;
-	Framerate<sf::Time> framerate(sf::seconds(1));
-	//Framerate<sf::Time, one_second> framerate;
-
 	sf::RectangleShape debugPanelRect;
 	debugPanelRect.setPosition(sf::Vector2f(0, window.getSize().y - 60));
 	debugPanelRect.setSize(sf::Vector2f(300, 60));
 	debugPanelRect.setFillColor(sf::Color(128, 128, 128, 128));
 
 
-	size_t fireWidth = 100;
-	size_t fireHeight = 100;
-	size_t fireVertCount = fireWidth * fireHeight;
-	unsigned char fireIntensity[fireWidth * fireHeight];
-
-	Vertex fireVerts[fireVertCount];
-
-	size_t fireCellCount = (fireWidth - 1) * (fireHeight - 1);
-
-	GLushort fireIndices[fireCellCount * 4];
-	int fireIndexCount = fireCellCount * 4;
-	{
-		GLushort* fireIndex = fireIndices;
-		for(int x = 0; x < fireWidth - 1; x++)
-			for(int y = 0; y < fireHeight - 1; y++) {
-
-				fireVerts[x + y * fireWidth].position = { float(x) / (fireWidth - 1) - .5, float(y) / (fireHeight - 1) - .5 };
-				*fireIndex = x + y * fireWidth;
-				fireIndex++;
-
-				fireVerts[x + 1 + y * fireWidth].position = { float(x + 1) / (fireWidth - 1) - .5, float(y) / (fireHeight - 1) - .5 };
-				*fireIndex = x + 1 + y * fireWidth;
-				fireIndex++;
-
-				fireVerts[x + 1 + (y + 1) * fireWidth].position = { float(x + 1) / (fireWidth - 1) - .5, float(y + 1) / (fireHeight - 1) - .5 };
-				*fireIndex = x + 1 + (y + 1) * fireWidth;
-				fireIndex++;
-
-				fireVerts[x + (y + 1) * fireWidth].position = { float(x) / (fireWidth - 1) - .5, float(y + 1) / (fireHeight - 1) - .5 };
-				*fireIndex = x + (y + 1) * fireWidth;
-				fireIndex++;
-
-				ASSERT(fireIndex <= fireIndices + fireIndexCount);
-			}
-	}
-
-
-
-
-
-
-
-
-	sf::Time fireTimer = sf::milliseconds(0);
 
 	glViewport(0, 0, window.getSize().x, window.getSize().y);
+
+
+	sf::Clock frame;
+	Framerate<sf::Time> framerate(sf::seconds(1));
+	//Framerate<sf::Time, one_second> framerate;
     while(true) {
         sf::Event event;
         while(window.pollEvent(event)) {
@@ -235,14 +269,38 @@ int main() {
 				glViewport(0, 0, event.size.width, event.size.height);
 			}
 			else if(event.type == sf::Event::KeyPressed) {
-				if(event.key.code == sf::Keyboard::Key::Up)
-					Interpolate(y, -1, sf::seconds(1), Tween::SINE);
+				/*if(event.key.code == sf::Keyboard::Key::Up)
+					//Interpolate(y, -1, sf::seconds(1), Tween::SINE);
+					playerAgent->direction = Direction4::NORTH;
 				else if(event.key.code == sf::Keyboard::Key::Down)
-					Interpolate(y, 1, sf::seconds(1), Tween::SINE);
+					//Interpolate(y, 1, sf::seconds(1), Tween::SINE);
+					playerAgent->direction = Direction4::SOUTH;
 				else if(event.key.code == sf::Keyboard::Key::Right)
-					Interpolate(x, 1, sf::seconds(1), Tween::SINE);
+					//Interpolate(x, 1, sf::seconds(1), Tween::SINE);
+					playerAgent->direction = Direction4::EAST;
 				else if(event.key.code == sf::Keyboard::Key::Left)
-					Interpolate(x, -1, sf::seconds(1), Tween::SINE);
+					//Interpolate(x, -1, sf::seconds(1), Tween::SINE);
+					playerAgent->direction = Direction4::WEST;*/
+				if(event.key.code == sf::Keyboard::Key::Up)
+					up = true;
+				else if(event.key.code == sf::Keyboard::Key::Down)
+					down = true;
+				else if(event.key.code == sf::Keyboard::Key::Right)
+					right = true;
+				else if(event.key.code == sf::Keyboard::Key::Left)
+					left = true;
+				SetAgentDirection(playerAgent, up, right, down, left);
+			}
+			else if(event.type == sf::Event::KeyReleased) {
+				if(event.key.code == sf::Keyboard::Key::Up)
+					up = false;
+				else if(event.key.code == sf::Keyboard::Key::Down)
+					down = false;
+				else if(event.key.code == sf::Keyboard::Key::Right)
+					right = false;
+				else if(event.key.code == sf::Keyboard::Key::Left)
+					left = false;
+				SetAgentDirection(playerAgent, up, right, down, left);
 			}
         }
         if(!window.isOpen())
@@ -252,70 +310,8 @@ int main() {
 		sf::Time dt = frame.restart();
 		framerate.update(dt);
 
+		UpdateAgents(dt);
 		UpdateInterpolations(dt);
-
-		fireTimer += dt;
-		if(fireTimer > sf::milliseconds(20)) {
-			fireTimer -= sf::milliseconds(20);
-
-			for(int x = 0; x < fireWidth; x++)
-				for(int y = 0; y < fireHeight; y++) {
-					//fireIntensity[x + y * fireHeight] = rand() % 255;
-					//continue;
-
-					int average = 0;
-					int ct = 0;
-
-					average += fireIntensity[x + y * fireWidth];
-					ct++;
-
-					if(x > 0) {
-						average += fireIntensity[x - 1 + y * fireWidth];
-					}
-					ct++;
-					if(x < fireWidth - 1) {
-						average += fireIntensity[x + 1 + y * fireWidth];
-					}
-					ct++;
-
-					if(y > 0) {
-						average += fireIntensity[x + (y - 1) * fireWidth];
-						ct++;
-					}
-					if(y < fireHeight - 1) {
-						average += fireIntensity[x + (y + 1) * fireWidth] * 3;
-						ct += 3;
-					}
-					average /= ct;
-
-					if(y == fireHeight - 1)// && x > fireWidth / 5 && x < fireWidth * 4 / 5)
-						average += rand() % 12;
-					else {
-						average += (rand() % 15 == 0)? (rand() % 90 - 70): 0;
-						//average -= rand() % 10;
-
-						if(average > 128)
-							average += 1;
-						else
-							average -= 1;
-					}
-
-					if(average > 255)
-						average = 255;
-					else if(average < 0)
-						average = 0;
-
-					fireIntensity[x + y * fireWidth] = average;
-				}
-		}
-		for(int i = 0; i < fireVertCount; i++) {
-			fireVerts[i].color = {
-				fireIntensity[i] / 255.0f,
-				fireIntensity[i] / 255.0f / 2,
-				fireIntensity[i] / 255.0f / 5,
-				fireIntensity[i] / 255.0f
-			};
-		}
 
 
 
@@ -345,8 +341,7 @@ int main() {
 		);
 		glMatrixMode(GL_MODELVIEW);
 
-		UpdateSprites();
-		DrawVertices(GL_QUADS, fireVerts, fireIndices, fireIndexCount);
+		DrawSprites();
 
 
 		window.display();
