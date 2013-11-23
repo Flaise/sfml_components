@@ -13,6 +13,13 @@
 	#define bforeach_r BOOST_REVERSE_FOREACH
 #pragma GCC diagnostic pop // reenable warnings
 
+
+void _assertFail(const char* file, int line) {
+	; // for debug breakpoint
+}
+#define ASSERT_FAIL(file, line) _assertFail(file, line)
+
+#include "assert.hpp"
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "framerate.hpp"
@@ -137,7 +144,6 @@ void DrawSprites() {
 }
 
 
-#include <unordered_set>
 #include <boost/cstdint.hpp>
 #include <boost/operators.hpp>
 struct Vec2i: boost::addable<Vec2i> {
@@ -163,17 +169,35 @@ struct Vec2iEqual {
 	}
 };
 
-std::unordered_set<Vec2i, Vec2iHash, Vec2iEqual> obstacles;
+#include <boost/bimap.hpp>
+#include <boost/bimap/unordered_set_of.hpp>
+using ObstacleIndex = size_t;
+ObstacleIndex nextObstacleIndex = 0;
+boost::bimap<
+	boost::bimaps::unordered_set_of<ObstacleIndex>,
+	boost::bimaps::unordered_set_of<Vec2i, Vec2iHash, Vec2iEqual>
+> obstacles;
+typedef boost::bimap<
+	boost::bimaps::unordered_set_of<ObstacleIndex>,
+	boost::bimaps::unordered_set_of<Vec2i, Vec2iHash, Vec2iEqual>
+>::value_type obstacle_v;
 
-Vec2i MakeObstacle(uint16_t x, uint16_t y) {
-	obstacles.insert({ x, y });
-	return {x, y};
+#include <boost/limits.hpp>
+ObstacleIndex MakeObstacle(uint16_t x, uint16_t y) {
+	ASSERT(obstacles.size() < std::numeric_limits<size_t>::max());
+	auto result = nextObstacleIndex;
+	obstacles.insert(obstacle_v(result, {x, y}));
+	do {
+		nextObstacleIndex++;
+	} while(obstacles.left.count(nextObstacleIndex) > 0);
+
+	return result;
 }
 
 
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
 	MakeSprite(MakeInterpoland(x), MakeInterpoland(y), texture);
-	obstacles.insert({x, y});
+	MakeObstacle(x, y);
 }
 
 enum class Direction4: unsigned char {
@@ -184,7 +208,7 @@ Direction4 RandomDirection4() {
 }
 
 struct Agent {
-	Vec2i obstacle;
+	ObstacleIndex obstacle;
 	InterpolandHandle x, y;
 	Direction4 direction;
 	sf::Time timePerMove;
@@ -195,17 +219,21 @@ using AgentHandle = SparseArray3<Agent, 20>::Handle;
 SparseArray3<Agent, 20> agents;
 
 AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
-	return agents.add({ {x->currValue, y->currValue}, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
+	return agents.add({ MakeObstacle(x->currValue, y->currValue), x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
 }
 
 bool _moveAgent(Agent* agent, int16_t dx, int16_t dy) {
-	if(obstacles.count(agent->obstacle + Vec2i(dx, dy))) {
+	Vec2i dest = obstacles.left.at(agent->obstacle);
+	dest += Vec2i(dx, dy);
+
+	if(obstacles.right.count(dest)) {
 		agent->timeUntilNextMove = sf::microseconds(0);
 		return false;
 	}
-	obstacles.erase(agent->obstacle);
-	agent->obstacle += Vec2i(dx, dy);
-	obstacles.insert(agent->obstacle);
+
+	obstacles.left.erase(agent->obstacle);
+	obstacles.insert(obstacle_v(agent->obstacle, dest));
+
 	agent->timeUntilNextMove += agent->timePerMove;
 	return true;
 }
@@ -290,7 +318,6 @@ void UpdateWanderAIs(sf::Time dt) {
 	}
 }
 
-
 //constexpr sf::Time one_second = sf::milliseconds(1000);
 int main() {
 	srand(0);
@@ -316,7 +343,6 @@ int main() {
 	{
 		auto x = MakeInterpoland(2);
 		auto y = MakeInterpoland(1);
-		obstacles.insert({2, 1});
 		MakeSprite(x, y, &texture);
 		auto agent = MakeAgent(x, y, sf::milliseconds(1000));
 		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(3500));
@@ -324,7 +350,6 @@ int main() {
 
 	auto x = MakeInterpoland(0);
 	auto y = MakeInterpoland(1);
-	obstacles.insert({0, 1});
 	MakeSprite(x, y, &texture);
 	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
 
@@ -352,11 +377,11 @@ int main() {
 	sf::Clock frame;
 	Framerate<sf::Time> framerate(sf::seconds(1));
 	//Framerate<sf::Time, one_second> framerate;
-    while(true) {
-        sf::Event event;
-        while(window.pollEvent(event)) {
-            if(event.type == sf::Event::Closed)
-                window.close();
+	while(true) {
+		sf::Event event;
+		while(window.pollEvent(event)) {
+			if(event.type == sf::Event::Closed)
+				window.close();
 			else if(event.type == sf::Event::Resized) {
 				glViewport(0, 0, event.size.width, event.size.height);
 			}
@@ -382,8 +407,8 @@ int main() {
 					left = false;
 				SetAgentDirection(playerAgent, up, right, down, left);
 			}
-        }
-        if(!window.isOpen())
+		}
+		if(!window.isOpen())
 			break;
 
 
@@ -426,7 +451,7 @@ int main() {
 
 
 		window.display();
-    }
+	}
 
-    return 0;
+	return 0;
 }
