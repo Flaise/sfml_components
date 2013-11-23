@@ -90,7 +90,12 @@ void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
 	MakeSprite(MakeInterpoland(x), MakeInterpoland(y), texture);
 	obstacles.add({x, y});
 }
-
+void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
+	auto xi = MakeInterpoland(x);
+	auto yi = MakeInterpoland(y);
+	MakeSprite(xi, yi, texture);
+	MakePushable(obstacles.add({x, y}), xi, yi);
+}
 
 
 
@@ -118,6 +123,7 @@ int main() {
 	MakeWall(-1, -1, &texture_block);
 	MakeWall(-1, -2, &texture_block);
 	MakeWall(-2, -2, &texture_block);
+	MakePushableBlock(0, -1, &texture_block_pushable);
 
 	{
 		auto x = MakeInterpoland(2);

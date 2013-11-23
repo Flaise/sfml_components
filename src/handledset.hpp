@@ -7,7 +7,7 @@
 	#include <boost/limits.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
-template<class T, class THash, class TEqual>
+template< class T, class THash=boost::hash<T>, class TEqual=std::equal_to<T> >
 class HandledSet {
 public:
 	using Handle = size_t;
@@ -38,7 +38,12 @@ public:
 	}
 
 	T get(Handle handle) {
+		ASSERT(elements.left.count(handle));
 		return elements.left.at(handle);
+	}
+	Handle get(T element) {
+		ASSERT(elements.right.count(element));
+		return elements.right.at(element);
 	}
 
 	void remove(Handle handle) {

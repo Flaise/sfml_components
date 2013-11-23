@@ -77,10 +77,10 @@ public:
 
 		Handle(Instance instance, Node* node): instance(instance), node(node) {}
 
-		bool operator==(Handle other) {
+		bool operator==(Handle other) const {
 			return instance == other.instance && node == other.node;
 		}
-		bool operator!=(Handle other) {
+		bool operator!=(Handle other) const {
 			return !(*this == other);
 		}
 
@@ -139,7 +139,7 @@ public:
 				return *this;
 			}
 
-			bool operator==(Iterator other) {
+			bool operator==(Iterator other) const {
 				//return current == other.current;
 				ASSERT(
 					(current.node != nullptr && other.current.node != nullptr)?
@@ -147,7 +147,7 @@ public:
 				);
 				return current.node == other.current.node;
 			}
-			bool operator!=(Iterator other) {
+			bool operator!=(Iterator other) const {
 				return !(*this == other);
 			}
 	};

@@ -21,13 +21,31 @@ AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePer
 	return agents.add({ obstacles.add({x->currValue, y->currValue}), x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
 }
 
-bool _moveAgent(Agent* agent, int16_t dx, int16_t dy) {
+bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
 	Vec2i dest = obstacles.get(agent->obstacle);
-	dest += Vec2i(dx, dy);
+	dest += delta;
 
 	if(obstacles.contains(dest)) {
-		agent->timeUntilNextMove = sf::microseconds(0);
-		return false;
+		auto obstructor = obstacles.get(dest);
+		if(pushables.left.count(obstructor)) {
+			// the obstacle can be pushed
+			if(obstacles.contains(dest + delta)) {
+				// something on other side
+				agent->timeUntilNextMove = sf::microseconds(0);
+				return false;
+			}
+			else {
+				// path is clear
+				obstacles.modify(obstructor, dest + delta);
+				Interpolate(pushables.left.at(obstructor).x, delta.x, duration, Tween::Linear);
+				Interpolate(pushables.left.at(obstructor).y, delta.y, duration, Tween::Linear);
+			}
+		}
+		else {
+			// too heavy
+			agent->timeUntilNextMove = sf::microseconds(0);
+			return false;
+		}
 	}
 
 	obstacles.modify(agent->obstacle, dest);
@@ -47,19 +65,19 @@ void UpdateAgents(sf::Time dt) {
 					it->timeUntilNextMove = sf::microseconds(0);
 					break;
 				case Direction4::NORTH:
-					if(_moveAgent(&(*it), 0, -1))
+					if(_moveAgent(&(*it), {0, -1}, duration))
 						Interpolate(it->y, -1, duration, Tween::Linear);
 					break;
 				case Direction4::EAST:
-					if(_moveAgent(&(*it), 1, 0))
+					if(_moveAgent(&(*it), {1, 0}, duration))
 						Interpolate(it->x, 1, duration, Tween::Linear);
 					break;
 				case Direction4::SOUTH:
-					if(_moveAgent(&(*it), 0, 1))
+					if(_moveAgent(&(*it), {0, 1}, duration))
 						Interpolate(it->y, 1, duration, Tween::Linear);
 					break;
 				case Direction4::WEST:
-					if(_moveAgent(&(*it), -1, 0))
+					if(_moveAgent(&(*it), {-1, 0}, duration))
 						Interpolate(it->x, -1, duration, Tween::Linear);
 					break;
 				default:
