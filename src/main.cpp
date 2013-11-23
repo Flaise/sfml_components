@@ -1,3 +1,11 @@
+
+
+template<class T>
+bool approximately_equal(T a, T b, T tolerance) {
+	auto c = (a - b);
+	return c < tolerance && c > -tolerance;
+}
+
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 
@@ -7,12 +15,9 @@
 #include <cstdlib> // for rand()
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
-	#include <boost/math/constants/constants.hpp>
-	#include <boost/foreach.hpp>
-	#define bforeach BOOST_FOREACH
-	#define bforeach_r BOOST_REVERSE_FOREACH
+	#include <boost/limits.hpp>
+	#include <boost/cstdint.hpp>
 #pragma GCC diagnostic pop // reenable warnings
-
 
 void _assertFail(const char* file, int line) {
 	; // for debug breakpoint
@@ -21,8 +26,14 @@ void _assertFail(const char* file, int line) {
 
 #include "assert.hpp"
 #include "sparsearray3.hpp"
+
 #include "interpolation.hpp"
 #include "framerate.hpp"
+#include "sprite.hpp"
+#include "agent.hpp"
+#include "wanderai.hpp"
+#include "obstacle.hpp"
+
 #include "assets/block.h"
 #include "assets/whiterabbit.h"
 
@@ -70,129 +81,7 @@ void UpdateTexts(sf::RenderWindow* window) {
 }
 
 
-struct Vertex {
-	struct { GLfloat x, y; } position;
-	struct { GLfloat r, g, b, a; } color;
-};
-void DrawVertices(GLenum mode, Vertex* vertices, GLushort* indices, size_t numIndices) {
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glVertexPointer(2, GL_FLOAT, sizeof(Vertex), &vertices->position);
-	glColorPointer(4, GL_FLOAT, sizeof(Vertex), &vertices->color);
-	glDrawElements(mode, numIndices, GL_UNSIGNED_SHORT, indices);
-
-
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisable(GL_BLEND);
-}
-
-
-
-struct SpriteVert {
-	struct { GLfloat x, y; } position;
-	struct { GLfloat u, v; } tex;
-};
-SpriteVert spriteVerts[] = {
-	{ { -.5f, -.5f }, { 0, 0 } },
-	{ { .5f, -.5f }, { 1, 0 } },
-	{ { .5f, .5f }, { 1, 1 } },
-	{ { -.5f, .5f }, { 0, 1 } }
-};
-
-
-struct Sprite {
-	struct { InterpolandHandle x, y; } position;
-	struct { GLfloat r, g, b, a; } color;
-	sf::Texture* texture;
-};
-using SpriteHandle = SparseArray3<Sprite, 100>::Handle;
-using SASprite = SparseArray3<Sprite, 100>;
-
-SASprite sprites;
-
-SpriteHandle MakeSprite(InterpolandHandle x, InterpolandHandle y, sf::Texture* texture) {
-	return sprites.add({ { x, y }, { 1, 1, 1, 1 }, texture });
-}
-
-void DrawSprites() {
-	glEnable(GL_TEXTURE_2D);
-
-	for(auto it = sprites.begin(); it != sprites.end(); it++) {
-		sf::Texture::bind(it->texture);
-
-
-		glPushMatrix();
-		glTranslatef(it->position.x->currValue, it->position.y->currValue, 0);
-		glBegin(GL_QUADS);
-
-		glColor4fv(&it->color.r);
-
-		for(int i = 0; i < 4; i++) {
-			glTexCoord2fv(&spriteVerts[i].tex.u);
-			glVertex2fv(&spriteVerts[i].position.x);
-		}
-
-		glEnd();
-		glPopMatrix();
-	}
-
-	glDisable(GL_TEXTURE_2D);
-}
-
-
-#include <boost/cstdint.hpp>
-#include <boost/operators.hpp>
-struct Vec2i: boost::addable<Vec2i> {
-	int16_t x, y;
-
-	Vec2i() {}
-	Vec2i(int16_t x, int16_t y): x(x), y(y) {}
-
-	Vec2i& operator+=(const Vec2i& other) {
-		this->x += other.x;
-		this->y += other.y;
-		return *this;
-	}
-};
-struct Vec2iHash {
-	size_t operator()(const Vec2i& vec) const {
-		return static_cast<size_t>(vec.x) ^ (static_cast<size_t>(vec.y) << 16);
-	}
-};
-struct Vec2iEqual {
-	bool operator()(const Vec2i& a, const Vec2i& b) const {
-		return a.x == b.x && a.y == b.y;
-	}
-};
-
-#include <boost/bimap.hpp>
-#include <boost/bimap/unordered_set_of.hpp>
-using ObstacleIndex = size_t;
-ObstacleIndex nextObstacleIndex = 0;
-boost::bimap<
-	boost::bimaps::unordered_set_of<ObstacleIndex>,
-	boost::bimaps::unordered_set_of<Vec2i, Vec2iHash, Vec2iEqual>
-> obstacles;
-typedef boost::bimap<
-	boost::bimaps::unordered_set_of<ObstacleIndex>,
-	boost::bimaps::unordered_set_of<Vec2i, Vec2iHash, Vec2iEqual>
->::value_type obstacle_v;
-
-#include <boost/limits.hpp>
-ObstacleIndex MakeObstacle(uint16_t x, uint16_t y) {
-	ASSERT(obstacles.size() < std::numeric_limits<size_t>::max());
-	auto result = nextObstacleIndex;
-	obstacles.insert(obstacle_v(result, {x, y}));
-	do {
-		nextObstacleIndex++;
-	} while(obstacles.left.count(nextObstacleIndex) > 0);
-
-	return result;
-}
 
 
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
@@ -200,125 +89,77 @@ void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
 	MakeObstacle(x, y);
 }
 
-enum class Direction4: unsigned char {
-	NORTH, EAST, SOUTH, WEST, NONE
-};
-Direction4 RandomDirection4() {
-	return static_cast<Direction4>(rand() % 4);
+
+auto worldCamX = MakeInterpoland(0);
+auto worldCamY = MakeInterpoland(0);
+auto worldCamH = MakeInterpoland(6);
+uint8_t worldCamPadding = 7;
+using WorldCamFocusHandle = SparseArray3<ObstacleIndex, 5>::Handle;
+SparseArray3<ObstacleIndex, 5> worldCamFoci;
+
+void UpdateWorldCam(sf::RenderWindow* window) {
+	if(worldCamFoci.size() == 0)
+		return;
+
+	int16_t minX = std::numeric_limits<int16_t>::max();
+	int16_t maxX = std::numeric_limits<int16_t>::min();
+	int16_t minY = std::numeric_limits<int16_t>::max();
+	int16_t maxY = std::numeric_limits<int16_t>::min();
+
+	for(auto it = worldCamFoci.begin(); it != worldCamFoci.end(); it++) {
+		auto current = obstacles.left.at(*it);
+		if(current.x < minX)
+			minX = current.x;
+		if(current.x > maxX)
+			maxX = current.x;
+		if(current.y < minY)
+			minY = current.y;
+		if(current.y > maxY)
+			maxY = current.y;
+	}
+
+	float centerX = (minX + maxX) / 2.0f;
+	float centerY = (minY + maxY) / 2.0f;
+
+	if(worldCamX->destValue != centerX)
+		InterpolateTo(worldCamX, centerX, sf::milliseconds(1500), Tween::SINE_INOUT);
+	if(worldCamY->destValue != centerY)
+		InterpolateTo(worldCamY, centerY, sf::milliseconds(1500), Tween::SINE_INOUT);
+
+
+	float height = maxY - minY + worldCamPadding;
+
+	sf::Vector2u wsize = window->getSize();
+	float aspect = float(wsize.x) / wsize.y;
+	float xHeight = (maxX - minX + worldCamPadding) / aspect;
+
+	float usingHeight = (height > xHeight)? height: xHeight;
+
+	if(worldCamH->destValue != usingHeight)
+		InterpolateTo(worldCamH, usingHeight, sf::milliseconds(1500), Tween::SINE_INOUT);
 }
 
-struct Agent {
-	ObstacleIndex obstacle;
-	InterpolandHandle x, y;
-	Direction4 direction;
-	sf::Time timePerMove;
-	sf::Time timeUntilNextMove;
-};
-using AgentHandle = SparseArray3<Agent, 20>::Handle;
+void DrawWorldCam(sf::RenderWindow* window) {
+	sf::Vector2u wsize = window->getSize();
+	float aspect = float(wsize.x) / wsize.y;
+	float halfWidth = aspect * worldCamH->currValue / 2;
+	float halfHeight = .5 * worldCamH->currValue;
 
-SparseArray3<Agent, 20> agents;
-
-AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
-	return agents.add({ MakeObstacle(x->currValue, y->currValue), x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
-}
-
-bool _moveAgent(Agent* agent, int16_t dx, int16_t dy) {
-	Vec2i dest = obstacles.left.at(agent->obstacle);
-	dest += Vec2i(dx, dy);
-
-	if(obstacles.right.count(dest)) {
-		agent->timeUntilNextMove = sf::microseconds(0);
-		return false;
-	}
-
-	obstacles.left.erase(agent->obstacle);
-	obstacles.insert(obstacle_v(agent->obstacle, dest));
-
-	agent->timeUntilNextMove += agent->timePerMove;
-	return true;
-}
-
-void UpdateAgents(sf::Time dt) {
-	for(auto it = agents.begin(); it != agents.end(); it++) {
-		it->timeUntilNextMove -= dt;
-		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
-			auto duration = it->timePerMove + it->timeUntilNextMove;
-
-			switch(it->direction) {
-				case Direction4::NONE:
-					it->timeUntilNextMove = sf::microseconds(0);
-					break;
-				case Direction4::NORTH:
-					if(_moveAgent(&(*it), 0, -1))
-						Interpolate(it->y, -1, duration, Tween::Linear);
-					break;
-				case Direction4::EAST:
-					if(_moveAgent(&(*it), 1, 0))
-						Interpolate(it->x, 1, duration, Tween::Linear);
-					break;
-				case Direction4::SOUTH:
-					if(_moveAgent(&(*it), 0, 1))
-						Interpolate(it->y, 1, duration, Tween::Linear);
-					break;
-				case Direction4::WEST:
-					if(_moveAgent(&(*it), -1, 0))
-						Interpolate(it->x, -1, duration, Tween::Linear);
-					break;
-				default:
-					ASSERT(false);
-			}
-		}
-	}
-}
-
-void SetAgentDirection(AgentHandle agent, bool up, bool right, bool down, bool left) {
-	// Only change direction when exactly one button is pressed. Stop when nothing is pressed.
-	if(!up && !down && !right && !left) {
-		agent->direction = Direction4::NONE;
-	}
-	else if(up && !down && !right && !left) {
-		agent->direction = Direction4::NORTH;
-	}
-	else if(down && !up && !right && !left) {
-		agent->direction = Direction4::SOUTH;
-	}
-	else if(right && !left && !up && !down) {
-		agent->direction = Direction4::EAST;
-	}
-	else if(left && !right && !up && !down) {
-		agent->direction = Direction4::WEST;
-	}
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(
+		worldCamX->currValue - halfWidth, // left
+		worldCamX->currValue + halfWidth, // right
+		worldCamY->currValue + halfHeight, // bottom
+		worldCamY->currValue - halfHeight, // top
+		-1, // near
+		1 // far
+	);
+	glMatrixMode(GL_MODELVIEW);
 }
 
 
 
-
-struct WanderAI {
-	AgentHandle agent;
-	sf::Time minTime, maxTime, timeUntilNextMove;
-};
-using WanderAIHandle = SparseArray3<WanderAI, 20>::Handle;
-
-SparseArray3<WanderAI, 20> wanderAIs;
-
-WanderAIHandle MakeWanderAI(AgentHandle agent, sf::Time minTime, sf::Time maxTime) {
-	return wanderAIs.add({ agent, minTime, maxTime, sf::milliseconds(0) });
-}
-
-void UpdateWanderAIs(sf::Time dt) {
-	for(auto it = wanderAIs.begin(); it != wanderAIs.end(); it++) {
-		it->timeUntilNextMove -= dt;
-		if(it->timeUntilNextMove <= sf::milliseconds(0)) {
-			it->timeUntilNextMove += it->minTime + sf::milliseconds(rand() % it->maxTime.asMilliseconds());
-			it->agent->direction = RandomDirection4();
-		}
-		else {
-			it->agent->direction = Direction4::NONE;
-		}
-	}
-}
-
-//constexpr sf::Time one_second = sf::milliseconds(1000);
 int main() {
 	srand(0);
 
@@ -345,13 +186,15 @@ int main() {
 		auto y = MakeInterpoland(1);
 		MakeSprite(x, y, &texture);
 		auto agent = MakeAgent(x, y, sf::milliseconds(1000));
-		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(3500));
+		MakeWanderAI(agent, sf::milliseconds(2500), sf::milliseconds(4500));
+		worldCamFoci.add(agent->obstacle);
 	}
 
 	auto x = MakeInterpoland(0);
 	auto y = MakeInterpoland(1);
 	MakeSprite(x, y, &texture);
 	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
+	worldCamFoci.add(playerAgent->obstacle);
 
 	bool up = false;
 	bool down = false;
@@ -375,8 +218,7 @@ int main() {
 
 
 	sf::Clock frame;
-	Framerate<sf::Time> framerate(sf::seconds(1));
-	//Framerate<sf::Time, one_second> framerate;
+	Framerate framerate;
 	while(true) {
 		sf::Event event;
 		while(window.pollEvent(event)) {
@@ -417,6 +259,7 @@ int main() {
 
 		UpdateWanderAIs(dt);
 		UpdateAgents(dt);
+		UpdateWorldCam(&window);
 		UpdateInterpolations(dt);
 
 
@@ -435,18 +278,7 @@ int main() {
 
 		window.popGLStates();
 
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(
-			-float(window.getSize().x) / window.getSize().y / 2 * 6, // left
-			float(window.getSize().x) / window.getSize().y / 2 * 6, // right
-			.5 * 6, // bottom
-			-.5 * 6, // top
-			-1, // near
-			1 // far
-		);
-		glMatrixMode(GL_MODELVIEW);
-
+		DrawWorldCam(&window);
 		DrawSprites();
 
 

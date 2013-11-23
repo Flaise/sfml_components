@@ -1,6 +1,12 @@
 #ifndef INTERPOLATION_HPP_INCLUDED
 #define INTERPOLATION_HPP_INCLUDED
 
+#include <SFML/System/Clock.hpp>
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
+	#include <boost/math/constants/constants.hpp>
+#pragma GCC diagnostic pop // reenable warnings
+
+#include "assert.hpp"
 #include "sparsearray3.hpp"
 
 struct Interpoland {
@@ -51,10 +57,13 @@ namespace Tween {
 
 
 auto Interpolate(InterpolandHandle interpoland, float delta, sf::Time duration, TweenFunc func) {
+	interpoland->destValue += delta;
 	return interpolations.add(Interpolation(interpoland, delta, duration, func));
 }
 auto InterpolateTo(InterpolandHandle interpoland, float dest, sf::Time duration, TweenFunc func) {
-	return Interpolate(interpoland, dest - (*interpoland).destValue, duration, func);
+	auto result = Interpolate(interpoland, dest - interpoland->destValue, duration, func);
+	ASSERT(approximately_equal(interpoland->destValue, dest, .0001f));
+	return result;
 }
 
 float GetDelta(Interpolation& interpolation) {
