@@ -8,31 +8,29 @@
 #include "obstacle.hpp"
 
 struct Agent {
-	ObstacleIndex obstacle;
+	ObstacleHandle obstacle;
 	InterpolandHandle x, y;
 	Direction4 direction;
 	sf::Time timePerMove;
 	sf::Time timeUntilNextMove;
 };
 using AgentHandle = SparseArray3<Agent, 20>::Handle;
-
 SparseArray3<Agent, 20> agents;
 
 AgentHandle MakeAgent(InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
-	return agents.add({ MakeObstacle(x->currValue, y->currValue), x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
+	return agents.add({ obstacles.add({x->currValue, y->currValue}), x, y, Direction4::NONE, timePerMove, sf::milliseconds(0) });
 }
 
 bool _moveAgent(Agent* agent, int16_t dx, int16_t dy) {
-	Vec2i dest = obstacles.left.at(agent->obstacle);
+	Vec2i dest = obstacles.get(agent->obstacle);
 	dest += Vec2i(dx, dy);
 
-	if(obstacles.right.count(dest)) {
+	if(obstacles.contains(dest)) {
 		agent->timeUntilNextMove = sf::microseconds(0);
 		return false;
 	}
 
-	obstacles.left.erase(agent->obstacle);
-	obstacles.insert(obstacle_v(agent->obstacle, dest));
+	obstacles.modify(agent->obstacle, dest);
 
 	agent->timeUntilNextMove += agent->timePerMove;
 	return true;
