@@ -17,7 +17,11 @@ EntityHandle MakeEntity() {
 
 	EntityHandle result = nextEntity;
 	entities.insert(result);
-	while(!entities.count(++nextEntity)); // find next unused
+
+	while(entities.count(++nextEntity)); // find next unused
+
+	ASSERT(nextEntity != result);
+	ASSERT(entities.count(nextEntity) == 0);
 
 	return result;
 }

@@ -1,10 +1,14 @@
 #ifndef SPRITE_HPP_INCLUDED
 #define SPRITE_HPP_INCLUDED
 
+#include <unordered_map>
 #include <SFML/OpenGL.hpp>
 #include <SFML/System/Clock.hpp>
+
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
+#include "entity.hpp"
+#include "assert.hpp"
 
 struct Vertex {
 	struct { GLfloat x, y; } position;
@@ -40,6 +44,7 @@ SpriteVert spriteVerts[] = {
 
 
 struct Sprite {
+	EntityHandle entity;
 	struct { InterpolandHandle x, y; } position;
 	struct { GLfloat r, g, b, a; } color;
 	sf::Texture* texture;
@@ -49,8 +54,14 @@ using SASprite = SparseArray3<Sprite, 100>;
 
 SASprite sprites;
 
-SpriteHandle MakeSprite(InterpolandHandle x, InterpolandHandle y, sf::Texture* texture) {
-	return sprites.add({ { x, y }, { 1, 1, 1, 1 }, texture });
+std::unordered_map<EntityHandle, SpriteHandle> entity_sprite;
+
+SpriteHandle MakeSprite(EntityHandle entity, InterpolandHandle x, InterpolandHandle y, sf::Texture* texture) {
+	ASSERT(entity_sprite.count(entity) == 0);
+
+	SpriteHandle sprite = sprites.add({entity, { x, y }, { 1, 1, 1, 1 }, texture});
+	entity_sprite[entity] = sprite;
+	return sprite;
 }
 
 void DrawSprites() {
@@ -58,7 +69,6 @@ void DrawSprites() {
 
 	for(auto it = sprites.begin(); it != sprites.end(); it++) {
 		sf::Texture::bind(it->texture);
-
 
 		glPushMatrix();
 		glTranslatef(it->position.x->currValue, it->position.y->currValue, 0);
@@ -76,6 +86,15 @@ void DrawSprites() {
 	}
 
 	glDisable(GL_TEXTURE_2D);
+}
+
+void InitSprites() {
+	destroyFuncs.push_back([](EntityHandle entity) {
+		if(entity_sprite.count(entity)) {
+			sprites.remove(entity_sprite[entity]);
+			entity_sprite.erase(entity);
+		}
+	});
 }
 
 #endif // SPRITE_HPP_INCLUDED

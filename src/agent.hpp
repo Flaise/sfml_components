@@ -27,6 +27,8 @@ std::unordered_map<EntityHandle, AgentHandle> entity_agent;
 
 
 AgentHandle MakeAgent(EntityHandle entity, ObstacleHandle obstacle, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
+	ASSERT(entity_agent.count(entity) == 0);
+
 	AgentHandle agent = agents.add({entity, obstacle, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0)});
 	entity_agent[entity] = agent;
 	return agent;

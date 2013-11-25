@@ -1,6 +1,7 @@
 #ifndef WORLDCAM_HPP_INCLUDED
 #define WORLDCAM_HPP_INCLUDED
 
+#include <unordered_map>
 #include <SFML/OpenGL.hpp>
 #include <boost/limits.hpp>
 
@@ -8,6 +9,7 @@
 #include "interpolation.hpp"
 #include "obstacle.hpp"
 #include "entity.hpp"
+#include "assert.hpp"
 
 auto worldCamEntity = MakeEntity();
 auto worldCamX = MakeInterpoland(worldCamEntity, 0);
@@ -16,6 +18,16 @@ auto worldCamH = MakeInterpoland(worldCamEntity, 6);
 uint8_t worldCamPadding = 7;
 using WorldCamFocusHandle = SparseArray3<ObstacleHandle, 5>::Handle;
 SparseArray3<ObstacleHandle, 5> worldCamFoci;
+
+std::unordered_map<EntityHandle, WorldCamFocusHandle> entity_worldCamFocus;
+
+WorldCamFocusHandle MakeWorldCamFocus(EntityHandle entity, ObstacleHandle obstacle) {
+	ASSERT(entity_worldCamFocus.count(entity) == 0);
+
+	auto handle = worldCamFoci.add(obstacle);
+	entity_worldCamFocus[entity] = handle;
+	return handle;
+}
 
 void UpdateWorldCam(sf::RenderWindow* window) {
 	if(worldCamFoci.size() == 0)
@@ -76,6 +88,15 @@ void DrawWorldCam(sf::RenderWindow* window) {
 		1 // far
 	);
 	glMatrixMode(GL_MODELVIEW);
+}
+
+void InitWorldCam() {
+	destroyFuncs.push_back([](EntityHandle entity) {
+		if(entity_worldCamFocus.count(entity)) {
+			worldCamFoci.remove(entity_worldCamFocus[entity]);
+			entity_worldCamFocus.erase(entity);
+		}
+	});
 }
 
 #endif // WORLDCAM_HPP_INCLUDED

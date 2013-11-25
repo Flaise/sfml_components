@@ -11,17 +11,15 @@ bool approximately_equal(T a, T b, T tolerance) {
 
 #include <iostream>
 #include <string>
-//#include <sstream>
 #include <cstdlib> // for rand()
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
-	#include <boost/limits.hpp>
-	#include <boost/cstdint.hpp>
 	#include <boost/lexical_cast.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
 void _assertFail(const char* file, int line) {
-	; // for debug breakpoint
+	// mostly for debug breakpoint
+	std::cout << "ASSERTION ERROR: file " << file << ":" << line << std::endl;
 }
 #define ASSERT_FAIL(file, line) _assertFail(file, line)
 
@@ -41,14 +39,6 @@ void _assertFail(const char* file, int line) {
 #include "assets/longears.h"
 #include "assets/sharpears.h"
 #include "assets/whiterabbit.h"
-
-// no one's bothered to implement the std:: version of this in MinGW
-// something to do with C99, evidently
-//std::string to_string(int i) {
-//	std::stringstream s;
-//	s << i;
-//	return s.str();
-//}
 
 
 struct DisplayText {
@@ -91,14 +81,14 @@ void UpdateTexts(sf::RenderWindow* window) {
 
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
 	auto entity = MakeEntity();
-	MakeSprite(MakeInterpoland(entity, x), MakeInterpoland(entity, y), texture);
+	MakeSprite(entity, MakeInterpoland(entity, x), MakeInterpoland(entity, y), texture);
 	MakeObstacle(entity, {x, y});
 }
 void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
 	auto entity = MakeEntity();
 	auto xi = MakeInterpoland(entity, x);
 	auto yi = MakeInterpoland(entity, y);
-	MakeSprite(xi, yi, texture);
+	MakeSprite(entity, xi, yi, texture);
 	MakePushable(entity, MakeObstacle(entity, {x, y}), xi, yi);
 }
 
@@ -134,6 +124,9 @@ int main() {
 	InitInterpolations();
 	InitAgents();
 	InitObstacles();
+	InitSprites();
+	InitWorldCam();
+	InitWanderAI();
 
 	MakeWall(-1, -1, &texture_block);
 	MakeWall(-1, -2, &texture_block);
@@ -144,31 +137,41 @@ int main() {
 		auto entity = MakeEntity();
 		auto x = MakeInterpoland(entity, 2);
 		auto y = MakeInterpoland(entity, 1);
-		MakeSprite(x, y, &texture_sharpears);
-		auto agent = MakeAgent(entity, MakeObstacle(entity, {2, 1}), x, y, sf::milliseconds(1000));
-		MakeWanderAI(agent, sf::milliseconds(2500), sf::milliseconds(4500));
-		worldCamFoci.add(agent->obstacle);
+		MakeSprite(entity, x, y, &texture_sharpears);
+		auto obstacle = MakeObstacle(entity, {2, 1});
+		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(800));
+		MakeWanderAI(entity, agent, sf::milliseconds(2500), sf::milliseconds(4500));
+		MakeWorldCamFocus(entity, obstacle);
+
+		ASSERT(interpolands.size() == 13);
+		ASSERT(sprites.size() == 5);
+		DestroyEntity(entity);
+		ASSERT(interpolands.size() == 11);
+		ASSERT(sprites.size() == 4);
 	}
 
 	{
 		auto entity = MakeEntity();
 		auto x = MakeInterpoland(entity, 1);
 		auto y = MakeInterpoland(entity, -1);
-		MakeSprite(x, y, &texture_longears);
+		MakeSprite(entity, x, y, &texture_longears);
 		auto obstacle = MakeObstacle(entity, {1, -1});
-		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(900));
-		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(5000));
-		worldCamFoci.add(obstacle);
+		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(750));
+		MakeWanderAI(entity, agent, sf::milliseconds(1500), sf::milliseconds(5000));
+		MakeWorldCamFocus(entity, obstacle);
 		MakePushable(entity, obstacle, x, y);
 	}
 
-	auto playerEntity = MakeEntity();
-	auto x = MakeInterpoland(playerEntity, 0);
-	auto y = MakeInterpoland(playerEntity, 1);
-	MakeSprite(x, y, &texture_sharpears);
-	auto obstacle = MakeObstacle(playerEntity, {0, 1});
-	auto playerAgent = MakeAgent(playerEntity, obstacle, x, y, sf::milliseconds(1000));
-	worldCamFoci.add(obstacle);
+	AgentHandle playerAgent; {
+		auto playerEntity = MakeEntity();
+		auto x = MakeInterpoland(playerEntity, 0);
+		auto y = MakeInterpoland(playerEntity, 1);
+		auto sprite = MakeSprite(playerEntity, x, y, &texture_sharpears);
+		sprite->color.b = .35f;
+		auto obstacle = MakeObstacle(playerEntity, {0, 1});
+		playerAgent = MakeAgent(playerEntity, obstacle, x, y, sf::milliseconds(800));
+		MakeWorldCamFocus(playerEntity, obstacle);
+	}
 
 	bool up = false;
 	bool down = false;

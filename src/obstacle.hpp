@@ -15,6 +15,9 @@ using ObstacleHandle = HandledSet<Vec2i>::Handle;
 std::unordered_map<EntityHandle, ObstacleHandle> entity_obstacle;
 
 ObstacleHandle MakeObstacle(EntityHandle entity, Vec2i position) {
+	ASSERT(entity_obstacle.count(entity) == 0);
+	ASSERT(!obstacles.contains(position));
+
 	ObstacleHandle obstacle = obstacles.add(position);
 	entity_obstacle[entity] = obstacle;
 	return obstacle;
