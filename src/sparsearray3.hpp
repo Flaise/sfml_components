@@ -5,23 +5,55 @@
 #include "assert.hpp"
 
 
+using SparseArray3_Instance = uint16_t;
+
+template<class T>
+struct SparseArray3_Node {
+	T datum;
+	SparseArray3_Instance instance;
+	SparseArray3_Node* prev;
+	SparseArray3_Node* next;
+
+	SparseArray3_Node() {}
+
+	SparseArray3_Node(T datum): datum(datum), instance(0), prev(nullptr), next(nullptr) {}
+
+	SparseArray3_Node(T datum, SparseArray3_Node* prev, SparseArray3_Node* next): datum(datum), instance(0), prev(prev), next(next) {}
+};
+
+template<class T>
+struct SparseArray3_Handle {
+	SparseArray3_Instance instance;
+	SparseArray3_Node<T>* node;
+
+	SparseArray3_Handle() {}
+
+	SparseArray3_Handle(SparseArray3_Instance instance, SparseArray3_Node<T>* node): instance(instance), node(node) {}
+
+	bool operator==(SparseArray3_Handle other) const {
+		return instance == other.instance && node == other.node;
+	}
+	bool operator!=(SparseArray3_Handle other) const {
+		return !(*this == other);
+	}
+
+	T& operator*() {
+		ASSERT(node != nullptr);
+		ASSERT(node->instance == instance);
+		return node->datum;
+	}
+
+	T* operator->() {
+		ASSERT(node != nullptr);
+		return &(node->datum);
+	}
+};
+
+
 template<class T, int allocationSize=50>
 class SparseArray3 {
 private:
-	using Instance = uint16_t;
-
-    struct Node {
-    	T datum;
-    	Instance instance;
-    	Node* prev;
-    	Node* next;
-
-    	Node() {}
-
-    	Node(T datum): datum(datum), instance(0), prev(nullptr), next(nullptr) {}
-
-    	Node(T datum, Node* prev, Node* next): datum(datum), instance(0), prev(prev), next(next) {}
-    };
+	using Node = SparseArray3_Node<T>;
 
     struct NodeArray {
     	Node data[allocationSize];
@@ -69,32 +101,7 @@ public:
 		delete arr;
 	}
 
-	struct Handle {
-		Instance instance;
-		Node* node;
-
-		Handle() {}
-
-		Handle(Instance instance, Node* node): instance(instance), node(node) {}
-
-		bool operator==(Handle other) const {
-			return instance == other.instance && node == other.node;
-		}
-		bool operator!=(Handle other) const {
-			return !(*this == other);
-		}
-
-		T& operator*() {
-			ASSERT(node != nullptr);
-			ASSERT(node->instance == instance);
-			return node->datum;
-		}
-
-		T* operator->() {
-			ASSERT(node != nullptr);
-			return &(node->datum);
-		}
-	};
+	using Handle = SparseArray3_Handle<T>;
 
 	class Iterator {
 		friend class SparseArray3;
@@ -272,5 +279,34 @@ public:
 		return size() == 0;
 	}
 };
+
+namespace std {
+	template<class T>
+	struct hash< SparseArray3_Handle<T> > {
+		size_t operator()(const SparseArray3_Handle<T>& handle) const {
+			return hash<SparseArray3_Node<T>*>()(handle->node);
+		}
+	};
+
+	/*template<class T, int allocationSize>
+	template< typename SparseArray3<T, allocationSize>::Handle >
+	struct equal_to< typename SparseArray3<T, allocationSize>::Handle > {
+		bool operator()(const SparseArray3<T, allocationSize>::Handle& a, const SparseArray3<T, allocationSize>::Handle& b) const {
+			return a == b;
+		}
+	};*/
+
+	template<class T>
+	struct equal_to< SparseArray3_Handle<T> > {
+		bool operator()(const SparseArray3_Handle<T>& a, const SparseArray3_Handle<T>& b) const {
+			return a == b;
+		}
+	};
+}
+
+template<class T>
+size_t hash_value(const SparseArray3_Handle<T>& handle) {
+	return std::hash<SparseArray3_Node<T>*>()(handle.node);
+}
 
 #endif // SPARSEARRAY3_HPP_INCLUDED

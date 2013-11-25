@@ -18,16 +18,22 @@ struct Vec2i: boost::addable<Vec2i> {
 		return *this;
 	}
 };
-struct Vec2iHash {
-	size_t operator()(const Vec2i& vec) const {
-		return static_cast<size_t>(vec.x) ^ (static_cast<size_t>(vec.y) << 16);
-	}
-};
-struct Vec2iEqual {
-	bool operator()(const Vec2i& a, const Vec2i& b) const {
-		return a.x == b.x && a.y == b.y;
-	}
-};
+namespace std {
+	template<>
+	struct hash<Vec2i> {
+		size_t operator()(const Vec2i& vec) const {
+			return static_cast<size_t>(vec.x) ^ (static_cast<size_t>(vec.y) << 16);
+		}
+	};
+
+	template<>
+	struct equal_to<Vec2i> {
+		bool operator()(const Vec2i& a, const Vec2i& b) const {
+			return a.x == b.x && a.y == b.y;
+		}
+	};
+}
+
 
 enum class Direction4: unsigned char {
 	NORTH, EAST, SOUTH, WEST, NONE

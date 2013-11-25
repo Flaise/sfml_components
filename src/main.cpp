@@ -11,12 +11,13 @@ bool approximately_equal(T a, T b, T tolerance) {
 
 #include <iostream>
 #include <string>
-#include <sstream>
+//#include <sstream>
 #include <cstdlib> // for rand()
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
 	#include <boost/limits.hpp>
 	#include <boost/cstdint.hpp>
+	#include <boost/lexical_cast.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
 void _assertFail(const char* file, int line) {
@@ -37,15 +38,17 @@ void _assertFail(const char* file, int line) {
 
 #include "assets/block.h"
 #include "assets/block-pushable.h"
+#include "assets/longears.h"
+#include "assets/sharpears.h"
 #include "assets/whiterabbit.h"
 
 // no one's bothered to implement the std:: version of this in MinGW
 // something to do with C99, evidently
-std::string to_string(int i) {
-	std::stringstream s;
-	s << i;
-	return s.str();
-}
+//std::string to_string(int i) {
+//	std::stringstream s;
+//	s << i;
+//	return s.str();
+//}
 
 
 struct DisplayText {
@@ -87,14 +90,16 @@ void UpdateTexts(sf::RenderWindow* window) {
 
 
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
-	MakeSprite(MakeInterpoland(x), MakeInterpoland(y), texture);
-	obstacles.add({x, y});
+	auto entity = MakeEntity();
+	MakeSprite(MakeInterpoland(entity, x), MakeInterpoland(entity, y), texture);
+	MakeObstacle(entity, {x, y});
 }
 void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
-	auto xi = MakeInterpoland(x);
-	auto yi = MakeInterpoland(y);
+	auto entity = MakeEntity();
+	auto xi = MakeInterpoland(entity, x);
+	auto yi = MakeInterpoland(entity, y);
 	MakeSprite(xi, yi, texture);
-	MakePushable(obstacles.add({x, y}), xi, yi);
+	MakePushable(entity, MakeObstacle(entity, {x, y}), xi, yi);
 }
 
 
@@ -117,8 +122,18 @@ int main() {
 	sf::Texture texture_block_pushable;
 	texture_block_pushable.loadFromMemory(block_pushable, sizeof(block_pushable));
 
+	sf::Texture texture_longears;
+	texture_longears.loadFromMemory(longears, sizeof(longears));
+
+	sf::Texture texture_sharpears;
+	texture_sharpears.loadFromMemory(sharpears, sizeof(sharpears));
+
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
+
+	InitInterpolations();
+	InitAgents();
+	InitObstacles();
 
 	MakeWall(-1, -1, &texture_block);
 	MakeWall(-1, -2, &texture_block);
@@ -126,19 +141,34 @@ int main() {
 	MakePushableBlock(0, -1, &texture_block_pushable);
 
 	{
-		auto x = MakeInterpoland(2);
-		auto y = MakeInterpoland(1);
-		MakeSprite(x, y, &texture_block);
-		auto agent = MakeAgent(x, y, sf::milliseconds(1000));
+		auto entity = MakeEntity();
+		auto x = MakeInterpoland(entity, 2);
+		auto y = MakeInterpoland(entity, 1);
+		MakeSprite(x, y, &texture_sharpears);
+		auto agent = MakeAgent(entity, MakeObstacle(entity, {2, 1}), x, y, sf::milliseconds(1000));
 		MakeWanderAI(agent, sf::milliseconds(2500), sf::milliseconds(4500));
 		worldCamFoci.add(agent->obstacle);
 	}
 
-	auto x = MakeInterpoland(0);
-	auto y = MakeInterpoland(1);
-	MakeSprite(x, y, &texture_block);
-	auto playerAgent = MakeAgent(x, y, sf::milliseconds(1000));
-	worldCamFoci.add(playerAgent->obstacle);
+	{
+		auto entity = MakeEntity();
+		auto x = MakeInterpoland(entity, 1);
+		auto y = MakeInterpoland(entity, -1);
+		MakeSprite(x, y, &texture_longears);
+		auto obstacle = MakeObstacle(entity, {1, -1});
+		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(900));
+		MakeWanderAI(agent, sf::milliseconds(1500), sf::milliseconds(5000));
+		worldCamFoci.add(obstacle);
+		MakePushable(entity, obstacle, x, y);
+	}
+
+	auto playerEntity = MakeEntity();
+	auto x = MakeInterpoland(playerEntity, 0);
+	auto y = MakeInterpoland(playerEntity, 1);
+	MakeSprite(x, y, &texture_sharpears);
+	auto obstacle = MakeObstacle(playerEntity, {0, 1});
+	auto playerAgent = MakeAgent(playerEntity, obstacle, x, y, sf::milliseconds(1000));
+	worldCamFoci.add(obstacle);
 
 	bool up = false;
 	bool down = false;
@@ -214,10 +244,19 @@ int main() {
 		window.pushGLStates();
 			window.draw(debugPanelRect);
 
-			framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
-			interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
-			interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
-			textCountText->message =                         "texts:          " + to_string(texts.size());
+			//framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
+			//interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
+			//interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
+			//textCountText->message =                         "texts:          " + to_string(texts.size());
+
+			framerateText->message =
+			    framerate.current >= 0? "FPS:            " + boost::lexical_cast<std::string>(framerate.current): "";
+			interpolandCountText->message =
+			                            "interpolands:   " + boost::lexical_cast<std::string>(interpolands.size());
+			interpolationCountText->message =
+			                            "interpolations: " + boost::lexical_cast<std::string>(interpolations.size());
+			textCountText->message =
+			                            "texts:          " + boost::lexical_cast<std::string>(texts.size());
 			UpdateTexts(&window);
 
 		window.popGLStates();

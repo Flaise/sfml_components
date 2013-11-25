@@ -7,7 +7,7 @@
 	#include <boost/limits.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
-template< class T, class THash=boost::hash<T>, class TEqual=std::equal_to<T> >
+template< class T, class THash=std::hash<T>, class TEqual=std::equal_to<T> >
 class HandledSet {
 public:
 	using Handle = size_t;

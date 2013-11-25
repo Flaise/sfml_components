@@ -7,10 +7,12 @@
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "obstacle.hpp"
+#include "entity.hpp"
 
-auto worldCamX = MakeInterpoland(0);
-auto worldCamY = MakeInterpoland(0);
-auto worldCamH = MakeInterpoland(6);
+auto worldCamEntity = MakeEntity();
+auto worldCamX = MakeInterpoland(worldCamEntity, 0);
+auto worldCamY = MakeInterpoland(worldCamEntity, 0);
+auto worldCamH = MakeInterpoland(worldCamEntity, 6);
 uint8_t worldCamPadding = 7;
 using WorldCamFocusHandle = SparseArray3<ObstacleHandle, 5>::Handle;
 SparseArray3<ObstacleHandle, 5> worldCamFoci;
