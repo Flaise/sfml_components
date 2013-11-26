@@ -6,7 +6,7 @@
 	#include <boost/operators.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
-struct Vec2i: boost::addable<Vec2i> {
+struct Vec2i: boost::addable<Vec2i>, boost::equality_comparable<Vec2i> {
 	int16_t x, y;
 
 	Vec2i() {}
@@ -16,6 +16,9 @@ struct Vec2i: boost::addable<Vec2i> {
 		this->x += other.x;
 		this->y += other.y;
 		return *this;
+	}
+	bool operator==(const Vec2i& other) const {
+		return this->x == other.x && this->y == other.y;
 	}
 };
 namespace std {

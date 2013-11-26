@@ -4,6 +4,52 @@
 
 #include "../sparsearray3.hpp"
 
+TEST_CASE("SA3 - removal during iteration") {
+	SparseArray3<char> arr;
+	auto ha = arr.add('a');
+	auto hb = arr.add('b');
+	auto hc = arr.add('c');
+
+	auto it = arr.begin();
+	REQUIRE(it != arr.end());
+	REQUIRE(*it == 'a');
+
+	SECTION("remove one at a time") {
+		arr.remove(it);
+		REQUIRE_THROWS(*it);
+		REQUIRE(arr.size() == 2);
+
+		it++;
+		REQUIRE(it != arr.end());
+		REQUIRE(*it == 'b');
+		arr.remove(it);
+		REQUIRE_THROWS(*it);
+		REQUIRE(arr.size() == 1);
+
+		it++;
+		REQUIRE(it != arr.end());
+		REQUIRE(*it == 'c');
+		arr.remove(it);
+		REQUIRE_THROWS(*it);
+		REQUIRE(arr.size() == 0);
+
+		it++;
+		REQUIRE(it == arr.end());
+		REQUIRE_THROWS(*it);
+	}
+
+	SECTION("remove two in a row") {
+		arr.remove(ha);
+		arr.remove(hb);
+		REQUIRE_THROWS(*it);
+
+		it++;
+		REQUIRE(it != arr.end());
+		REQUIRE(*it == 'c');
+		REQUIRE_THROWS(*it);
+	}
+}
+
 class Blah {
 public:
 	int one() { return 1; }

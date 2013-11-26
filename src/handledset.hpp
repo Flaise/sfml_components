@@ -14,17 +14,25 @@ public:
 
 private:
 	Handle nextIndex = 0;
-	boost::bimap<
-		boost::bimaps::unordered_set_of<Handle>,
-		boost::bimaps::unordered_set_of<T, THash, TEqual>
-	> elements;
 
-	using Mapping = typename boost::bimap<
+	using MapType = boost::bimap<
 		boost::bimaps::unordered_set_of<Handle>,
 		boost::bimaps::unordered_set_of<T, THash, TEqual>
-	>::value_type;
+	>;
+	using Mapping = MapType::value_type;
+
+	MapType elements;
 
 public:
+	//using Iterator = MapType::left_iterator;
+	//Iterator begin() {
+	//	return elements.left.begin();
+	//}
+	//Iterator end() {
+	//	return elements.left.end();
+	//}
+
+
 	Handle add(T element) {
 		ASSERT(elements.size() < std::numeric_limits<size_t>::max());
 		auto result = nextIndex;

@@ -47,6 +47,12 @@ struct SparseArray3_Handle {
 		ASSERT(node != nullptr);
 		return &(node->datum);
 	}
+
+	// TODO: Not certain this is necessary or accomplishes anything
+	T* operator->() const {
+		ASSERT(node != nullptr);
+		return &(node->datum);
+	}
 };
 
 
@@ -147,7 +153,6 @@ public:
 			}
 
 			bool operator==(Iterator other) const {
-				//return current == other.current;
 				ASSERT(
 					(current.node != nullptr && other.current.node != nullptr)?
 						(current.node->instance == other.current.node->instance): true
@@ -156,6 +161,10 @@ public:
 			}
 			bool operator!=(Iterator other) const {
 				return !(*this == other);
+			}
+
+			Handle getHandle() {
+				return current;
 			}
 	};
 
@@ -284,7 +293,7 @@ namespace std {
 	template<class T>
 	struct hash< SparseArray3_Handle<T> > {
 		size_t operator()(const SparseArray3_Handle<T>& handle) const {
-			return hash<SparseArray3_Node<T>*>()(handle->node);
+			return hash<SparseArray3_Node<T>*>()(handle.node);
 		}
 	};
 

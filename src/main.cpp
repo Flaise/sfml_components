@@ -58,7 +58,7 @@ using SAText = SparseArray3<DisplayText, 100>;
 
 SAText texts;
 
-auto MakeDisplayText(sf::Font* font, sf::String message, float x, float y, float ax, float ay) {
+TextHandle MakeDisplayText(sf::Font* font, sf::String message, float x, float y, float ax, float ay) {
 	return texts.add(DisplayText(font, message, x, y, ax, ay));
 }
 
@@ -80,16 +80,16 @@ void UpdateTexts(sf::RenderWindow* window) {
 
 
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
-	auto entity = MakeEntity();
-	MakeSprite(entity, MakeInterpoland(entity, x), MakeInterpoland(entity, y), texture);
-	MakeObstacle(entity, {x, y});
+	auto destroyable = MakeDestroyable();
+	MakeSprite(destroyable, MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), texture);
+	MakeObstacle(destroyable, {x, y});
 }
 void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
-	auto entity = MakeEntity();
-	auto xi = MakeInterpoland(entity, x);
-	auto yi = MakeInterpoland(entity, y);
-	MakeSprite(entity, xi, yi, texture);
-	MakePushable(entity, MakeObstacle(entity, {x, y}), xi, yi);
+	auto destroyable = MakeDestroyable();
+	auto xi = MakeInterpoland(destroyable, x);
+	auto yi = MakeInterpoland(destroyable, y);
+	MakeSprite(destroyable, xi, yi, texture);
+	MakePushable(MakeObstacle(destroyable, {x, y}), xi, yi);
 }
 
 
@@ -121,49 +121,38 @@ int main() {
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
-	InitInterpolations();
-	InitAgents();
-	InitObstacles();
-	InitSprites();
-	InitWorldCam();
-	InitWanderAI();
-
 	MakeWall(-1, -1, &texture_block);
 	MakeWall(-1, -2, &texture_block);
 	MakeWall(-2, -2, &texture_block);
 	MakePushableBlock(0, -1, &texture_block_pushable);
 
 	{
-		auto entity = MakeEntity();
-		auto x = MakeInterpoland(entity, 2);
-		auto y = MakeInterpoland(entity, 1);
-		MakeSprite(entity, x, y, &texture_sharpears);
-		auto obstacle = MakeObstacle(entity, {2, 1});
-		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(800));
-		MakeWanderAI(entity, agent, sf::milliseconds(2500), sf::milliseconds(4500));
-		MakeWorldCamFocus(entity, obstacle);
+		auto destroyable = MakeDestroyable();
+		auto x = MakeInterpoland(destroyable, 2);
+		auto y = MakeInterpoland(destroyable, 1);
+		MakeSprite(destroyable, x, y, &texture_sharpears);
+		auto obstacle = MakeObstacle(destroyable, {2, 1});
+		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(800));
+		MakeWanderAI(destroyable, agent, sf::milliseconds(2500), sf::milliseconds(4500));
+		MakeWorldCamFocus(destroyable, obstacle);
 
-		ASSERT(interpolands.size() == 13);
-		ASSERT(sprites.size() == 5);
-		DestroyEntity(entity);
-		ASSERT(interpolands.size() == 11);
-		ASSERT(sprites.size() == 4);
+		destroyable->alive = false;
 	}
 
 	{
-		auto entity = MakeEntity();
-		auto x = MakeInterpoland(entity, 1);
-		auto y = MakeInterpoland(entity, -1);
-		MakeSprite(entity, x, y, &texture_longears);
-		auto obstacle = MakeObstacle(entity, {1, -1});
-		auto agent = MakeAgent(entity, obstacle, x, y, sf::milliseconds(750));
-		MakeWanderAI(entity, agent, sf::milliseconds(1500), sf::milliseconds(5000));
-		MakeWorldCamFocus(entity, obstacle);
-		MakePushable(entity, obstacle, x, y);
+		auto destroyable = MakeDestroyable();
+		auto x = MakeInterpoland(destroyable, 1);
+		auto y = MakeInterpoland(destroyable, -1);
+		MakeSprite(destroyable, x, y, &texture_longears);
+		auto obstacle = MakeObstacle(destroyable, {1, -1});
+		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(750));
+		MakeWanderAI(destroyable, agent, sf::milliseconds(1500), sf::milliseconds(5000));
+		MakeWorldCamFocus(destroyable, obstacle);
+		MakePushable(obstacle, x, y);
 	}
 
 	AgentHandle playerAgent; {
-		auto playerEntity = MakeEntity();
+		auto playerEntity = MakeDestroyable();
 		auto x = MakeInterpoland(playerEntity, 0);
 		auto y = MakeInterpoland(playerEntity, 1);
 		auto sprite = MakeSprite(playerEntity, x, y, &texture_sharpears);

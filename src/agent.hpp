@@ -1,19 +1,18 @@
 #ifndef AGENT_HPP_INCLUDED
 #define AGENT_HPP_INCLUDED
 
-#include <unordered_map>
 #include <SFML/System/Clock.hpp>
 
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "discrete2d.hpp"
 #include "obstacle.hpp"
-#include "entity.hpp"
+#include "destroyable.hpp"
 #include "assert.hpp"
 
 
 struct Agent {
-	EntityHandle entity;
+	DestroyableHandle destroyable;
 	ObstacleHandle obstacle;
 	InterpolandHandle x, y;
 	Direction4 direction;
@@ -23,33 +22,31 @@ struct Agent {
 using AgentHandle = SparseArray3<Agent, 20>::Handle;
 SparseArray3<Agent, 20> agents;
 
-std::unordered_map<EntityHandle, AgentHandle> entity_agent;
 
-
-AgentHandle MakeAgent(EntityHandle entity, ObstacleHandle obstacle, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove) {
-	ASSERT(entity_agent.count(entity) == 0);
-
-	AgentHandle agent = agents.add({entity, obstacle, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0)});
-	entity_agent[entity] = agent;
-	return agent;
+AgentHandle MakeAgent(
+	DestroyableHandle destroyable, ObstacleHandle obstacle, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove
+) {
+	ReferenceDestroyable(destroyable);
+	return agents.add({destroyable, obstacle, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0)});
 }
 
 bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
-	Vec2i dest = obstacles.get(agent->obstacle);
-	dest += delta;
+	Vec2i dest = agent->obstacle->position + delta;
 
-	if(obstacles.contains(dest)) {
-		auto obstructor = obstacles.get(dest);
+	auto obstructorIt = GetObstacleAt(dest);
+	if(obstructorIt != obstacles.end()) {
+		auto obstructor = obstructorIt.getHandle();
+
 		if(pushables.left.count(obstructor)) {
 			// the obstacle can be pushed
-			if(obstacles.contains(dest + delta)) {
+			if(IsObstacleAt(dest + delta)) {
 				// something on other side
 				agent->timeUntilNextMove = sf::milliseconds(0);
 				return false;
 			}
 			else {
 				// path is clear
-				obstacles.modify(obstructor, dest + delta);
+				MoveObstacleTo(obstructor, dest + delta);
 				Interpolate(pushables.left.at(obstructor).x, delta.x, duration, Tween::Linear);
 				Interpolate(pushables.left.at(obstructor).y, delta.y, duration, Tween::Linear);
 			}
@@ -61,7 +58,7 @@ bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
 		}
 	}
 
-	obstacles.modify(agent->obstacle, dest);
+	MoveObstacleTo(agent->obstacle, dest);
 
 	agent->timeUntilNextMove += agent->timePerMove;
 	return true;
@@ -69,6 +66,12 @@ bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
 
 void UpdateAgents(sf::Time dt) {
 	for(auto it = agents.begin(); it != agents.end(); it++) {
+		if(!it->destroyable->alive) {
+			UnreferenceDestroyable(it->destroyable);
+			agents.remove(it);
+			continue;
+		}
+
 		it->timeUntilNextMove -= dt;
 		if(it->timeUntilNextMove > sf::milliseconds(0))
 			continue;
@@ -122,15 +125,6 @@ void SetAgentDirection(AgentHandle agent, bool up, bool right, bool down, bool l
 	else if(left && !right && !up && !down) {
 		agent->direction = Direction4::WEST;
 	}
-}
-
-void InitAgents() {
-	destroyFuncs.push_back([](EntityHandle entity) {
-		if(entity_agent.count(entity)) {
-			agents.remove(entity_agent[entity]);
-			entity_agent.erase(entity);
-		}
-	});
 }
 
 #endif // AGENT_HPP_INCLUDED

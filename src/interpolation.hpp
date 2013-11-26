@@ -1,7 +1,6 @@
 #ifndef INTERPOLATION_HPP_INCLUDED
 #define INTERPOLATION_HPP_INCLUDED
 
-#include<unordered_map>
 #include <SFML/System/Clock.hpp>
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
 	#include <boost/math/constants/constants.hpp> // for pi
@@ -9,17 +8,18 @@
 
 #include "assert.hpp"
 #include "sparsearray3.hpp"
-#include "entity.hpp"
+#include "destroyable.hpp"
 
 
 struct Interpoland {
-	EntityHandle entity;
+	DestroyableHandle destroyable;
 	float baseValue;
 	float currValue;
 	float destValue;
 
 	Interpoland() {}
-	Interpoland(EntityHandle entity, float value): entity(entity), baseValue(value), currValue(value), destValue(value) {}
+	Interpoland(DestroyableHandle destroyable, float value):
+		destroyable(destroyable), baseValue(value), currValue(value), destValue(value) {}
 
 	bool isMoving() {
 		return currValue != destValue;
@@ -27,8 +27,6 @@ struct Interpoland {
 };
 using InterpolandHandle = SparseArray3<Interpoland, 100>::Handle;
 using SAInterpoland = SparseArray3<Interpoland, 100>;
-
-std::unordered_multimap<EntityHandle, InterpolandHandle> entity_interpoland;
 
 
 using TweenFunc = std::function<float(float)>;
@@ -45,15 +43,15 @@ struct Interpolation {
 		interpoland(interpoland), destDelta(delta), duration(duration), elapsed(sf::milliseconds(0)), scaling(func) {}
 };
 using SAInterpolation = SparseArray3<Interpolation, 200>;
+using InterpolationHandle = SparseArray3<Interpolation, 200>::Handle;
 
 
 SAInterpoland interpolands;
 SAInterpolation interpolations;
 
-auto MakeInterpoland(EntityHandle entity, float value) {
-	auto handle = interpolands.add(Interpoland(entity, value));
-	entity_interpoland.insert(decltype(entity_interpoland)::value_type(entity, handle));
-	return handle;
+InterpolandHandle MakeInterpoland(DestroyableHandle destroyable, float value) {
+	ReferenceDestroyable(destroyable);
+	return interpolands.add(Interpoland(destroyable, value));
 }
 
 
@@ -69,11 +67,11 @@ namespace Tween {
 }
 
 
-auto Interpolate(InterpolandHandle interpoland, float delta, sf::Time duration, TweenFunc func) {
+InterpolationHandle Interpolate(InterpolandHandle interpoland, float delta, sf::Time duration, TweenFunc func) {
 	interpoland->destValue += delta;
 	return interpolations.add(Interpolation(interpoland, delta, duration, func));
 }
-auto InterpolateTo(InterpolandHandle interpoland, float dest, sf::Time duration, TweenFunc func) {
+InterpolationHandle InterpolateTo(InterpolandHandle interpoland, float dest, sf::Time duration, TweenFunc func) {
 	auto result = Interpolate(interpoland, dest - interpoland->destValue, duration, func);
 	ASSERT(approximately_equal(interpoland->destValue, dest, .0001f));
 	return result;
@@ -81,23 +79,6 @@ auto InterpolateTo(InterpolandHandle interpoland, float dest, sf::Time duration,
 
 float GetDelta(Interpolation& interpolation) {
 	return interpolation.destDelta * interpolation.scaling(interpolation.elapsed.asSeconds() / interpolation.duration.asSeconds());
-}
-
-void UpdateInterpolations(sf::Time dt) {
-	for(auto it = interpolands.begin(); it != interpolands.end(); it++)
-		it->currValue = it->baseValue;
-
-	for(auto it = interpolations.begin(); it != interpolations.end(); it++) {
-		it->elapsed += dt;
-		if(it->elapsed >= it->duration) {
-			it->interpoland->currValue += it->destDelta;
-			it->interpoland->baseValue += it->destDelta;
-			interpolations.remove(it);
-		}
-		else {
-			it->interpoland->currValue += GetDelta(*it);
-		}
-	}
 }
 
 // for assertion statements
@@ -108,24 +89,33 @@ bool _hasNoInterpolations(InterpolandHandle interpoland) {
 	return true;
 }
 
-void InitInterpolations() {
-	destroyFuncs.push_back([](EntityHandle entity) {
-		auto range = entity_interpoland.equal_range(entity);
-		for(auto it = range.first; it != range.second; it++) {
-			auto interpoland = it->second;
-			if(interpoland->currValue == interpoland->destValue) {
-				ASSERT(_hasNoInterpolations(interpoland));
-			}
-			else {
-				for(auto it = interpolations.begin(); it != interpolations.end(); it++)
-					if(it->interpoland == interpoland)
-						interpolations.remove(it);
-			}
-			interpolands.remove(interpoland);
+void UpdateInterpolations(sf::Time dt) {
+	for(auto it = interpolands.begin(); it != interpolands.end(); it++)
+		it->currValue = it->baseValue;
+
+	for(auto it = interpolations.begin(); it != interpolations.end(); it++) {
+		if(!it->interpoland->destroyable->alive) {
+			interpolations.remove(it);
+			continue;
 		}
-		entity_interpoland.erase(entity);
-		ASSERT(entity_interpoland.count(entity) == 0);
-	});
+
+		it->elapsed += dt;
+		if(it->elapsed >= it->duration) {
+			it->interpoland->currValue += it->destDelta;
+			it->interpoland->baseValue += it->destDelta;
+			interpolations.remove(it);
+		}
+		else {
+			it->interpoland->currValue += GetDelta(*it);
+		}
+	}
+
+	for(auto it = interpolands.begin(); it != interpolands.end(); it++)
+		if(!it->destroyable->alive) {
+			ASSERT(_hasNoInterpolations(it.getHandle()));
+			UnreferenceDestroyable(it->destroyable);
+			interpolands.remove(it);
+		}
 }
 
 #endif // INTERPOLATION_HPP_INCLUDED
