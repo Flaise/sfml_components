@@ -41,11 +41,15 @@ TEST_CASE("SA3 - removal during iteration") {
 	SECTION("remove two in a row") {
 		arr.remove(ha);
 		arr.remove(hb);
+		REQUIRE(arr.size() == 1);
 		REQUIRE_THROWS(*it);
 
 		it++;
 		REQUIRE(it != arr.end());
 		REQUIRE(*it == 'c');
+
+		it++;
+		REQUIRE(it == arr.end());
 		REQUIRE_THROWS(*it);
 	}
 }

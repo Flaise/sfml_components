@@ -13,12 +13,7 @@ struct SparseArray3_Node {
 	SparseArray3_Instance instance;
 	SparseArray3_Node* prev;
 	SparseArray3_Node* next;
-
-	SparseArray3_Node() {}
-
-	SparseArray3_Node(T datum): datum(datum), instance(0), prev(nullptr), next(nullptr) {}
-
-	SparseArray3_Node(T datum, SparseArray3_Node* prev, SparseArray3_Node* next): datum(datum), instance(0), prev(prev), next(next) {}
+	bool used;
 };
 
 template<class T>
@@ -68,25 +63,25 @@ private:
     	NodeArray(NodeArray* next): next(next) {}
 
     	~NodeArray() {
-			if(next)
-				delete next;
+			delete next;
     	}
     };
 
-    NodeArray* arr;
-    size_t currentCapacity;
-    size_t nodeCount;
-    size_t elementCount;
-    Node* unusedHead;
+    NodeArray* arr = nullptr;
+    size_t currentCapacity = 0;
+    size_t nodeCount = 0;
+    size_t elementCount = 0;
+    Node* unusedHead = nullptr;
     Node* usedHead;
-    Node* usedTail;
+    Node* usedTail = nullptr;
 
     void pushUnused(Node* node) {
     	ASSERT(node != nullptr);
-    	ASSERT(unusedHead == nullptr || node->next != unusedHead);
+    	ASSERT(unusedHead == nullptr || node->prev != unusedHead);
 
+		node->used = false;
 		node->instance++;
-		node->next = unusedHead;
+		node->prev = unusedHead;
 		unusedHead = node;
     }
     Node* popUnused() {
@@ -95,14 +90,11 @@ private:
 		ASSERT(unusedHead != usedTail);
 
 		Node* node = unusedHead;
-		unusedHead = node->next;
+		unusedHead = node->prev;
 		return node;
     }
 
 public:
-	SparseArray3():
-		arr(nullptr), currentCapacity(0), nodeCount(0), elementCount(0),
-		unusedHead(nullptr), usedTail(nullptr) { }
 	~SparseArray3() {
 		delete arr;
 	}
@@ -114,22 +106,8 @@ public:
 
 		private:
 			Handle current;
-			Handle next;
 
-			Iterator(Handle current): current(current) {
-				updateNext();
-			}
-
-			void updateNext() {
-				if(current.node == nullptr)
-					return;
-
-				next.node = current.node->next;
-				if(next.node != nullptr)
-					next.instance = next.node->instance;
-				else
-					next.instance = 0;
-			}
+			Iterator(Handle current): current(current) {}
 
 		public:
 			T& operator*() {
@@ -144,10 +122,13 @@ public:
 			}
 			Iterator operator++() {
 				ASSERT(current.node != nullptr);
-				ASSERT(next.node == nullptr || next.node->instance == next.instance);
 
-				current = next;
-				updateNext();
+				do {
+					current.node = current.node->next;
+					if(current.node)
+						current.instance = current.node->instance;
+				}
+				while(current.node != nullptr && !current.node->used);
 
 				return *this;
 			}
@@ -232,10 +213,7 @@ public:
 		if(elementCount == nodeCount) {
 			ASSERT(arr != nullptr);
 			Node* node = arr->data + (elementCount % allocationSize);
-			node->instance = 0;
-			node->datum = element;
-			node->prev = usedTail;
-			node->next = nullptr;
+			*node = {element, 0, usedTail, nullptr, true};
 
 			ASSERT((elementCount == 0) == (usedTail == nullptr));
 
@@ -264,9 +242,7 @@ public:
 				usedTail->next = node;
 			}
 
-			node->datum = element;
-			node->next = nullptr;
-			node->prev = usedTail;
+			*node = {element, node->instance, usedTail, nullptr, true};
 
 			usedTail = node;
 
@@ -279,12 +255,11 @@ public:
 		}
 	}
 
-
-	size_t size() const {
+	inline size_t size() const {
 		return elementCount;
 	}
 
-	bool empty() const {
+	inline bool empty() const {
 		return size() == 0;
 	}
 };
@@ -296,14 +271,6 @@ namespace std {
 			return hash<SparseArray3_Node<T>*>()(handle.node);
 		}
 	};
-
-	/*template<class T, int allocationSize>
-	template< typename SparseArray3<T, allocationSize>::Handle >
-	struct equal_to< typename SparseArray3<T, allocationSize>::Handle > {
-		bool operator()(const SparseArray3<T, allocationSize>::Handle& a, const SparseArray3<T, allocationSize>::Handle& b) const {
-			return a == b;
-		}
-	};*/
 
 	template<class T>
 	struct equal_to< SparseArray3_Handle<T> > {
