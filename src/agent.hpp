@@ -7,7 +7,7 @@
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "discrete2d.hpp"
-#include "obstacle.hpp"
+#include "body.hpp"
 #include "destroyable.hpp"
 #include "assert.hpp"
 

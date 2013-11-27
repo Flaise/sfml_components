@@ -31,7 +31,7 @@ void _assertFail(const char* file, int line) {
 #include "sprite.hpp"
 #include "agent.hpp"
 #include "wanderai.hpp"
-#include "obstacle.hpp"
+#include "body.hpp"
 #include "worldcam.hpp"
 
 #include "assets/block.h"
