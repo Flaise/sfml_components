@@ -1,6 +1,7 @@
 #ifndef AGENT_HPP_INCLUDED
 #define AGENT_HPP_INCLUDED
 
+#include <unordered_set>
 #include <SFML/System/Clock.hpp>
 
 #include "sparsearray3.hpp"
@@ -13,7 +14,7 @@
 
 struct Agent {
 	DestroyableHandle destroyable;
-	ObstacleHandle obstacle;
+	BodyHandle body;
 	InterpolandHandle x, y;
 	Direction4 direction;
 	sf::Time timePerMove;
@@ -23,30 +24,36 @@ using AgentHandle = SparseArray3<Agent, 20>::Handle;
 SparseArray3<Agent, 20> agents;
 
 
+std::unordered_set<AgentHandle> eaters;
+
+
 AgentHandle MakeAgent(
-	DestroyableHandle destroyable, ObstacleHandle obstacle, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove
+	DestroyableHandle destroyable, BodyHandle body, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove
 ) {
 	ReferenceDestroyable(destroyable);
-	return agents.add({destroyable, obstacle, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0)});
+	return agents.add({destroyable, body, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0)});
 }
 
-bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
-	Vec2i dest = agent->obstacle->position + delta;
+bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
+	Vec2i dest = agent->body->position + delta;
 
-	auto obstructorIt = GetObstacleAt(dest);
-	if(obstructorIt != obstacles.end()) {
+	auto obstructorIt = GetBodyAt(dest);
+	if(obstructorIt != bodies.end()) {
 		auto obstructor = obstructorIt.getHandle();
 
-		if(pushables.left.count(obstructor)) {
+		if(eatables.count(obstructor) && eaters.count(agent)) {
+			obstructor->destroyable->alive = false;
+		}
+		else if(pushables.left.count(obstructor)) {
 			// the obstacle can be pushed
-			if(IsObstacleAt(dest + delta)) {
+			if(IsBodyAt(dest + delta)) {
 				// something on other side
 				agent->timeUntilNextMove = sf::milliseconds(0);
 				return false;
 			}
 			else {
 				// path is clear
-				MoveObstacleTo(obstructor, dest + delta);
+				MoveBodyTo(obstructor, dest + delta);
 				Interpolate(pushables.left.at(obstructor).x, delta.x, duration, Tween::Linear);
 				Interpolate(pushables.left.at(obstructor).y, delta.y, duration, Tween::Linear);
 			}
@@ -58,7 +65,7 @@ bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
 		}
 	}
 
-	MoveObstacleTo(agent->obstacle, dest);
+	MoveBodyTo(agent->body, dest);
 
 	agent->timeUntilNextMove += agent->timePerMove;
 	return true;
@@ -67,6 +74,9 @@ bool _moveAgent(Agent* agent, Vec2i delta, sf::Time duration) {
 void UpdateAgents(sf::Time dt) {
 	for(auto it = agents.begin(); it != agents.end(); it++) {
 		if(!it->destroyable->alive) {
+			if(eaters.count(it.getHandle()))
+				eaters.erase(it.getHandle());
+
 			UnreferenceDestroyable(it->destroyable);
 			agents.remove(it);
 			continue;
@@ -87,19 +97,19 @@ void UpdateAgents(sf::Time dt) {
 				it->timeUntilNextMove = sf::milliseconds(0);
 				break;
 			case Direction4::NORTH:
-				if(_moveAgent(&(*it), {0, -1}, duration))
+				if(_moveAgent(it.getHandle(), {0, -1}, duration))
 					Interpolate(it->y, -1, duration, Tween::Linear);
 				break;
 			case Direction4::EAST:
-				if(_moveAgent(&(*it), {1, 0}, duration))
+				if(_moveAgent(it.getHandle(), {1, 0}, duration))
 					Interpolate(it->x, 1, duration, Tween::Linear);
 				break;
 			case Direction4::SOUTH:
-				if(_moveAgent(&(*it), {0, 1}, duration))
+				if(_moveAgent(it.getHandle(), {0, 1}, duration))
 					Interpolate(it->y, 1, duration, Tween::Linear);
 				break;
 			case Direction4::WEST:
-				if(_moveAgent(&(*it), {-1, 0}, duration))
+				if(_moveAgent(it.getHandle(), {-1, 0}, duration))
 					Interpolate(it->x, -1, duration, Tween::Linear);
 				break;
 			default:

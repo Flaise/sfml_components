@@ -18,14 +18,14 @@ uint8_t worldCamPadding = 7;
 
 struct WorldCamFocus {
 	DestroyableHandle destroyable;
-	ObstacleHandle obstacle;
+	BodyHandle body;
 };
 using WorldCamFocusHandle = SparseArray3<WorldCamFocus, 5>::Handle;
 SparseArray3<WorldCamFocus, 5> worldCamFoci;
 
-WorldCamFocusHandle MakeWorldCamFocus(DestroyableHandle destroyable, ObstacleHandle obstacle) {
+WorldCamFocusHandle MakeWorldCamFocus(DestroyableHandle destroyable, BodyHandle body) {
 	ReferenceDestroyable(destroyable);
-	return worldCamFoci.add({destroyable, obstacle});
+	return worldCamFoci.add({destroyable, body});
 }
 
 void UpdateWorldCam(sf::RenderWindow* window) {
@@ -44,7 +44,7 @@ void UpdateWorldCam(sf::RenderWindow* window) {
 			continue;
 		}
 
-		auto current = it->obstacle->position;//obstacles.get(*it);
+		auto current = it->body->position;
 		if(current.x < minX)
 			minX = current.x;
 		if(current.x > maxX)

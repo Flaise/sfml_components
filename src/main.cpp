@@ -82,14 +82,14 @@ void UpdateTexts(sf::RenderWindow* window) {
 void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
 	MakeSprite(destroyable, MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), texture);
-	MakeObstacle(destroyable, {x, y});
+	MakeBody(destroyable, {x, y});
 }
 void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
 	auto xi = MakeInterpoland(destroyable, x);
 	auto yi = MakeInterpoland(destroyable, y);
 	MakeSprite(destroyable, xi, yi, texture);
-	MakePushable(MakeObstacle(destroyable, {x, y}), xi, yi);
+	MakePushable(MakeBody(destroyable, {x, y}), xi, yi);
 }
 
 
@@ -131,12 +131,10 @@ int main() {
 		auto x = MakeInterpoland(destroyable, 2);
 		auto y = MakeInterpoland(destroyable, 1);
 		MakeSprite(destroyable, x, y, &texture_sharpears);
-		auto obstacle = MakeObstacle(destroyable, {2, 1});
+		auto obstacle = MakeBody(destroyable, {2, 1});
 		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(800));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(2500), sf::milliseconds(4500));
 		MakeWorldCamFocus(destroyable, obstacle);
-
-		destroyable->alive = false;
 	}
 
 	{
@@ -144,22 +142,26 @@ int main() {
 		auto x = MakeInterpoland(destroyable, 1);
 		auto y = MakeInterpoland(destroyable, -1);
 		MakeSprite(destroyable, x, y, &texture_longears);
-		auto obstacle = MakeObstacle(destroyable, {1, -1});
+		auto obstacle = MakeBody(destroyable, {1, -1});
 		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(750));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(1500), sf::milliseconds(5000));
 		MakeWorldCamFocus(destroyable, obstacle);
 		MakePushable(obstacle, x, y);
+
+		eatables.insert(obstacle);
 	}
 
 	AgentHandle playerAgent; {
-		auto playerEntity = MakeDestroyable();
-		auto x = MakeInterpoland(playerEntity, 0);
-		auto y = MakeInterpoland(playerEntity, 1);
-		auto sprite = MakeSprite(playerEntity, x, y, &texture_sharpears);
+		auto destroyable = MakeDestroyable();
+		auto x = MakeInterpoland(destroyable, 0);
+		auto y = MakeInterpoland(destroyable, 1);
+		auto sprite = MakeSprite(destroyable, x, y, &texture_sharpears);
 		sprite->color.b = .35f;
-		auto obstacle = MakeObstacle(playerEntity, {0, 1});
-		playerAgent = MakeAgent(playerEntity, obstacle, x, y, sf::milliseconds(800));
-		MakeWorldCamFocus(playerEntity, obstacle);
+		auto obstacle = MakeBody(destroyable, {0, 1});
+		playerAgent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(800));
+		MakeWorldCamFocus(destroyable, obstacle);
+
+		eaters.insert(playerAgent);
 	}
 
 	bool up = false;
@@ -235,11 +237,6 @@ int main() {
 
 		window.pushGLStates();
 			window.draw(debugPanelRect);
-
-			//framerateText->message = framerate.current >= 0? "FPS:            " + to_string(framerate.current): "";
-			//interpolandCountText->message =                  "interpolands:   " + to_string(interpolands.size());
-			//interpolationCountText->message =                "interpolations: " + to_string(interpolations.size());
-			//textCountText->message =                         "texts:          " + to_string(texts.size());
 
 			framerateText->message =
 			    framerate.current >= 0? "FPS:            " + boost::lexical_cast<std::string>(framerate.current): "";

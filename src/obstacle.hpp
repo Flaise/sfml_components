@@ -1,63 +1,73 @@
 #ifndef OBSTACLE_HPP_INCLUDED
 #define OBSTACLE_HPP_INCLUDED
 
+#include <unordered_set>
+
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
 	#include <boost/bimap.hpp>
 	#include <boost/bimap/unordered_set_of.hpp>
 #pragma GCC diagnostic pop // reenable warnings
 
-//#include "handledset.hpp"
 #include "discrete2d.hpp"
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "destroyable.hpp"
 
-struct Obstacle {
+struct Body {
 	DestroyableHandle destroyable;
 	Vec2i position;
 };
-SparseArray3<Obstacle> obstacles;
-using ObstacleHandle = typename SparseArray3<Obstacle>::Handle;
+SparseArray3<Body> bodies;
+using BodyHandle = typename SparseArray3<Body>::Handle;
+
+
+
 
 struct Pushable {
-	ObstacleHandle obstacle;
+	BodyHandle body;
 	InterpolandHandle x, y;
 };
 namespace std {
 	template<>
 	struct hash<Pushable> {
 		size_t operator()(const Pushable& pushable) const {
-			return hash<ObstacleHandle>()(pushable.obstacle);
+			return hash<BodyHandle>()(pushable.body);
 		}
 	};
 
 	template<>
 	struct equal_to<Pushable> {
 		bool operator()(const Pushable& a, const Pushable& b) const {
-			return a.obstacle->position == b.obstacle->position;
+			return a.body->position == b.body->position;
 		}
 	};
 }
 
 boost::bimap<
-	boost::bimaps::unordered_set_of<ObstacleHandle>,
+	boost::bimaps::unordered_set_of<BodyHandle>,
 	boost::bimaps::unordered_set_of<Pushable, std::hash<Pushable>>
 > pushables;
 
-using ObstaclePushableMapping = typename boost::bimap<
-	boost::bimaps::unordered_set_of<ObstacleHandle>,
+using BodyPushableMapping = typename boost::bimap<
+	boost::bimaps::unordered_set_of<BodyHandle>,
 	boost::bimaps::unordered_set_of<Pushable, std::hash<Pushable>>
 >::value_type;
 
-SparseArray3<Obstacle>::Iterator GetObstacleAt(Vec2i position) {
-	auto it = obstacles.begin();
-	for(; it != obstacles.end(); it++) {
+
+std::unordered_set<BodyHandle> eatables;
+
+SparseArray3<Body>::Iterator GetBodyAt(Vec2i position) {
+	auto it = bodies.begin();
+	for(; it != bodies.end(); it++) {
 		if(!it->destroyable->alive) {
+			if(eatables.count(it.getHandle()))
+				eatables.erase(it.getHandle());
+
 			if(pushables.left.count(it.getHandle()))
 				pushables.left.erase(it.getHandle());
 
 			UnreferenceDestroyable(it->destroyable);
-			obstacles.remove(it);
+			bodies.remove(it);
 			continue;
 		}
 		if(it->position == position)
@@ -66,41 +76,26 @@ SparseArray3<Obstacle>::Iterator GetObstacleAt(Vec2i position) {
 	return it;
 }
 
-bool IsObstacleAt(Vec2i position) {
-	return GetObstacleAt(position) != obstacles.end();
+bool IsBodyAt(Vec2i position) {
+	return GetBodyAt(position) != bodies.end();
 }
 
-ObstacleHandle MakeObstacle(DestroyableHandle destroyable, Vec2i position) {
-	ASSERT(!IsObstacleAt(position));
+BodyHandle MakeBody(DestroyableHandle destroyable, Vec2i position) {
+	ASSERT(!IsBodyAt(position));
 
 	ReferenceDestroyable(destroyable);
-	return obstacles.add({destroyable, position});
+	return bodies.add({destroyable, position});
 }
 
-void MoveObstacleTo(ObstacleHandle obstacle, Vec2i dest) {
-	ASSERT(dest == obstacle->position || !IsObstacleAt(dest));
+void MoveBodyTo(BodyHandle body, Vec2i dest) {
+	ASSERT(dest == body->position || !IsBodyAt(dest));
 
-	obstacle->position = dest;
+	body->position = dest;
 }
 
-/*HandledSet<Obstacle> obstacles;
-using ObstacleHandle = HandledSet<Obstacle>::Handle;
 
-ObstacleHandle MakeObstacle(DestroyableHandle destroyable, Vec2i position) {
-	ASSERT(!obstacles.contains(position));
-
-	ReferenceDestroyable(destroyable);
-	return obstacles.add({destroyable, position});
-}
-
-void MoveObstacleTo(ObstacleHandle obstacle, Vec2i dest) {
-	ASSERT(!obstacles.contains())
-}*/
-
-
-
-void MakePushable(ObstacleHandle obstacle, InterpolandHandle x, InterpolandHandle y) {
-	pushables.insert(ObstaclePushableMapping(obstacle, {obstacle, x, y}));
+void MakePushable(BodyHandle body, InterpolandHandle x, InterpolandHandle y) {
+	pushables.insert(BodyPushableMapping(body, {body, x, y}));
 }
 
 
