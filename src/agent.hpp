@@ -44,7 +44,7 @@ bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
 		if(eatables.count(obstructor) && eaters.count(agent)) {
 			obstructor->destroyable->alive = false;
 		}
-		else if(pushables.left.count(obstructor)) {
+		else if(pushables.count(obstructor)) {
 			// the obstacle can be pushed
 			if(IsBodyAt(dest + delta)) {
 				// something on other side
@@ -54,8 +54,10 @@ bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
 			else {
 				// path is clear
 				MoveBodyTo(obstructor, dest + delta);
-				Interpolate(pushables.left.at(obstructor).x, delta.x, duration, Tween::Linear);
-				Interpolate(pushables.left.at(obstructor).y, delta.y, duration, Tween::Linear);
+				if(delta.x)
+					Interpolate(pushables[obstructor].x, delta.x, duration, Tween::Linear);
+				if(delta.y)
+					Interpolate(pushables[obstructor].y, delta.y, duration, Tween::Linear);
 			}
 		}
 		else {
