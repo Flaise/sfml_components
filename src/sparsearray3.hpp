@@ -4,13 +4,16 @@
 #include <boost/operators.hpp>
 #include "assert.hpp"
 
-
-using SparseArray3_Instance = uint16_t;
+#ifdef DEBUG
+	using SparseArray3_Instance = uint16_t;
+#endif
 
 template<class T>
 struct SparseArray3_Node {
 	T datum;
-	SparseArray3_Instance instance;
+	#ifdef DEBUG
+		SparseArray3_Instance instance;
+	#endif
 	SparseArray3_Node* prev;
 	SparseArray3_Node* next;
 	bool used;
@@ -18,15 +21,17 @@ struct SparseArray3_Node {
 
 template<class T>
 struct SparseArray3_Handle {
-	SparseArray3_Instance instance;
+	#ifdef DEBUG
+		SparseArray3_Instance instance;
+	#endif
 	SparseArray3_Node<T>* node;
 
-	SparseArray3_Handle() {}
-
-	SparseArray3_Handle(SparseArray3_Instance instance, SparseArray3_Node<T>* node): instance(instance), node(node) {}
-
 	bool operator==(SparseArray3_Handle other) const {
-		return instance == other.instance && node == other.node;
+		return
+			#ifdef DEBUG
+				instance == other.instance &&
+			#endif
+			node == other.node;
 	}
 	bool operator!=(SparseArray3_Handle other) const {
 		return !(*this == other);
@@ -34,7 +39,9 @@ struct SparseArray3_Handle {
 
 	T& operator*() {
 		ASSERT(node != nullptr);
-		ASSERT(node->instance == instance);
+		#ifdef DEBUG
+			ASSERT(node->instance == instance);
+		#endif
 		return node->datum;
 	}
 
@@ -80,7 +87,9 @@ private:
     	ASSERT(unusedHead == nullptr || node->prev != unusedHead);
 
 		node->used = false;
-		node->instance++;
+		#ifdef DEBUG
+			node->instance++;
+		#endif
 		node->prev = unusedHead;
 		unusedHead = node;
     }
@@ -125,8 +134,10 @@ public:
 
 				do {
 					current.node = current.node->next;
-					if(current.node)
-						current.instance = current.node->instance;
+					#ifdef DEBUG
+						if(current.node)
+							current.instance = current.node->instance;
+					#endif
 				}
 				while(current.node != nullptr && !current.node->used);
 
@@ -134,10 +145,12 @@ public:
 			}
 
 			bool operator==(Iterator other) const {
-				ASSERT(
-					(current.node != nullptr && other.current.node != nullptr)?
-						(current.node->instance == other.current.node->instance): true
-				);
+				#ifdef DEBUG
+					ASSERT(
+						(current.node != nullptr && other.current.node != nullptr)?
+							(current.node->instance == other.current.node->instance): true
+					);
+				#endif
 				return current.node == other.current.node;
 			}
 			bool operator!=(Iterator other) const {
@@ -155,12 +168,24 @@ public:
 
 	Iterator begin() {
 		if(elementCount == 0)
-			return Iterator(Handle(0, nullptr));
+			#ifdef DEBUG
+				return Iterator({0, nullptr});
+			#else
+				return Iterator({nullptr});
+			#endif
 		else
-			return Iterator(Handle(usedHead->instance, usedHead));
+			#ifdef DEBUG
+				return Iterator({usedHead->instance, usedHead});
+			#else
+				return Iterator({usedHead});
+			#endif
 	}
 	Iterator end() {
-		return Iterator(Handle(0, nullptr));
+		#ifdef DEBUG
+			return Iterator({0, nullptr});
+		#else
+			return Iterator({nullptr});
+		#endif
 	}
 
 	void remove(Iterator arg) {
@@ -168,7 +193,9 @@ public:
 	}
 	void remove(Handle arg) {
 		ASSERT(elementCount > 0);
-		ASSERT(arg.node->instance == arg.instance);
+		#ifdef DEBUG
+			ASSERT(arg.node->instance == arg.instance);
+		#endif
 
 		ASSERT((usedHead == arg.node) == (arg.node->prev == nullptr));
 		ASSERT((usedTail == arg.node) == (arg.node->next == nullptr));
@@ -213,7 +240,11 @@ public:
 		if(elementCount == nodeCount) {
 			ASSERT(arr != nullptr);
 			Node* node = arr->data + (elementCount % allocationSize);
-			*node = {element, 0, usedTail, nullptr, true};
+			#ifdef DEBUG
+				*node = {element, 0, usedTail, nullptr, true};
+			#else
+				*node = {element, usedTail, nullptr, true};
+			#endif
 
 			ASSERT((elementCount == 0) == (usedTail == nullptr));
 
@@ -228,7 +259,11 @@ public:
 
 			ASSERT((elementCount == 1) == (node->prev == nullptr));
 
-			return Handle(0, node);
+			#ifdef DEBUG
+				return {0, node};
+			#else
+				return {node};
+			#endif
 		}
 		else {
 			Node* node = popUnused();
@@ -242,7 +277,11 @@ public:
 				usedTail->next = node;
 			}
 
-			*node = {element, node->instance, usedTail, nullptr, true};
+			#ifdef DEBUG
+				*node = {element, node->instance, usedTail, nullptr, true};
+			#else
+				*node = {element, usedTail, nullptr, true};
+			#endif
 
 			usedTail = node;
 
@@ -251,7 +290,11 @@ public:
 
 			ASSERT((elementCount == 1) == (node->prev == nullptr));
 
-			return Handle(node->instance, node);
+			#ifdef DEBUG
+				return {node->instance, node};
+			#else
+				return {node};
+			#endif
 		}
 	}
 
