@@ -10,6 +10,7 @@
 #include "assert.hpp"
 
 
+
 struct SpriteVert {
 	struct { GLfloat x, y, z; } position;
 	struct { GLfloat u, v; } tex;
@@ -29,9 +30,7 @@ struct Sprite {
 	sf::Texture* texture;
 };
 using SpriteHandle = SparseArray3<Sprite, 100>::Handle;
-using SASprite = SparseArray3<Sprite, 100>;
-
-SASprite sprites;
+SparseArray3<Sprite, 100> sprites;
 
 SpriteHandle MakeSprite(
 	DestroyableHandle destroyable, InterpolandHandle x, InterpolandHandle y, InterpolandHandle z, sf::Texture* texture
