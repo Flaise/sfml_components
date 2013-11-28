@@ -8,6 +8,7 @@
 #include "interpolation.hpp"
 #include "destroyable.hpp"
 #include "assert.hpp"
+#include "discrete2d.hpp"
 
 
 
@@ -17,8 +18,8 @@ struct SpriteVert {
 };
 SpriteVert spriteVerts[] = {
 	{ { -.5f, 1, 0 }, { 0, 0 } },
-	{ { .5f, 1, 0 }, { 1, 0 } },
-	{ { .5f, 0, 0 }, { 1, 1 } },
+	{ {  .5f, 1, 0 }, { 1, 0 } },
+	{ {  .5f, 0, 0 }, { 1, 1 } },
 	{ { -.5f, 0, 0 }, { 0, 1 } }
 };
 
@@ -28,6 +29,7 @@ struct Sprite {
 	struct { InterpolandHandle x, y, z; } position;
 	struct { GLfloat r, g, b, a; } color;
 	sf::Texture* texture;
+	Direction2 flipState;
 };
 using SpriteHandle = SparseArray3<Sprite, 100>::Handle;
 SparseArray3<Sprite, 100> sprites;
@@ -36,7 +38,7 @@ SpriteHandle MakeSprite(
 	DestroyableHandle destroyable, InterpolandHandle x, InterpolandHandle y, InterpolandHandle z, sf::Texture* texture
 ) {
 	ReferenceDestroyable(destroyable);
-	return sprites.add({destroyable, { x, y, z }, { 1, 1, 1, 1 }, texture});
+	return sprites.add({destroyable, {x, y, z}, {1, 1, 1, 1}, texture, Direction2::LEFT});
 }
 
 struct Cube {
@@ -64,21 +66,21 @@ CubeHandle MakeCube(
 SpriteVert cubeWallVerts[] = {
 	// south
 	{{-.5f, 1, -.5f}, {0, 0}},
-	{{.5f, 1, -.5f}, {1, 0}},
-	{{.5f, 0, -.5f}, {1, 1}},
+	{{ .5f, 1, -.5f}, {1, 0}},
+	{{ .5f, 0, -.5f}, {1, 1}},
 	{{-.5f, 0, -.5f}, {0, 1}},
 
 	// east
 	{{.5f, 1, -.5f}, {0, 0}},
-	{{.5f, 1, .5f}, {1, 0}},
-	{{.5f, 0, .5f}, {1, 1}},
+	{{.5f, 1,  .5f}, {1, 0}},
+	{{.5f, 0,  .5f}, {1, 1}},
 	{{.5f, 0, -.5f}, {0, 1}},
 
 	// west
-	{{-.5f, 1, .5f}, {1, 0}},
+	{{-.5f, 1,  .5f}, {1, 0}},
 	{{-.5f, 1, -.5f}, {0, 0}},
 	{{-.5f, 0, -.5f}, {0, 1}},
-	{{-.5f, 0, .5f}, {1, 1}},
+	{{-.5f, 0,  .5f}, {1, 1}},
 
 	//{{.5f, 1, .5f}, {1, 0}},
 	//{{-.5f, 1, .5f}, {0, 0}},
@@ -111,6 +113,17 @@ void DrawWorld() {
 
 		glPushMatrix();
 		glTranslatef(it->position.x->currValue, it->position.y->currValue, it->position.z->currValue);
+
+		switch(it->flipState) {
+			case Direction2::LEFT:
+				break;
+			case Direction2::RIGHT:
+				glScalef(-1, 1, 1);
+				break;
+			default:
+				ASSERT(false);
+		}
+
 		glBegin(GL_QUADS);
 
 		glColor4fv(&it->color.r);
