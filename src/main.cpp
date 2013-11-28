@@ -81,8 +81,10 @@ void UpdateTexts(sf::RenderWindow* window) {
 
 void MakeWall(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
-	MakeSprite(
-		destroyable, MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), MakeInterpoland(destroyable, z), texture
+	MakeCube(
+		destroyable,
+		MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), MakeInterpoland(destroyable, z),
+		texture, texture
 	);
 	MakeBody(destroyable, {x, z});
 }
@@ -91,7 +93,7 @@ void MakePushableBlock(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto xi = MakeInterpoland(destroyable, x);
 	auto yi = MakeInterpoland(destroyable, y);
 	auto zi = MakeInterpoland(destroyable, z);
-	MakeSprite(destroyable, xi, yi, zi, texture);
+	MakeCube(destroyable, xi, yi, zi, texture, texture);
 	MakePushable(MakeBody(destroyable, {x, z}), xi, zi);
 }
 
@@ -160,10 +162,10 @@ int main() {
 		auto destroyable = MakeDestroyable();
 		auto x = MakeInterpoland(destroyable, 0);
 		auto y = MakeInterpoland(destroyable, 0);
-		auto z = MakeInterpoland(destroyable, 1);
+		auto z = MakeInterpoland(destroyable, -3);
 		auto sprite = MakeSprite(destroyable, x, y, z, &texture_sharpears);
-		sprite->color.b = .35f;
-		auto obstacle = MakeBody(destroyable, {0, 1});
+		sprite->color = {.6f, .2f, .2f, 1};
+		auto obstacle = MakeBody(destroyable, {0, -3});
 		playerAgent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(800));
 		MakeWorldCamFocus(destroyable, obstacle);
 
@@ -257,7 +259,7 @@ int main() {
 		window.popGLStates();
 
 		DrawWorldCam(&window);
-		DrawSprites();
+		DrawWorld();
 
 
 		window.display();

@@ -16,10 +16,10 @@ struct SpriteVert {
 	struct { GLfloat u, v; } tex;
 };
 SpriteVert spriteVerts[] = {
-	{ { -.5f, 1, .5f }, { 0, 0 } },
-	{ { .5f, 1, .5f }, { 1, 0 } },
-	{ { .5f, 0, .5f }, { 1, 1 } },
-	{ { -.5f, 0, .5f }, { 0, 1 } }
+	{ { -.5f, 1, 0 }, { 0, 0 } },
+	{ { .5f, 1, 0 }, { 1, 0 } },
+	{ { .5f, 0, 0 }, { 1, 1 } },
+	{ { -.5f, 0, 0 }, { 0, 1 } }
 };
 
 
@@ -39,7 +39,62 @@ SpriteHandle MakeSprite(
 	return sprites.add({destroyable, { x, y, z }, { 1, 1, 1, 1 }, texture});
 }
 
-void DrawSprites() {
+struct Cube {
+	DestroyableHandle destroyable;
+	struct { InterpolandHandle x, y, z; } position;
+	struct { GLfloat r, g, b, a; } color;
+	sf::Texture* wallTexture;
+	sf::Texture* roofTexture;
+};
+using CubeHandle = SparseArray3<Cube, 100>::Handle;
+SparseArray3<Cube, 100> cubes;
+
+CubeHandle MakeCube(
+	DestroyableHandle destroyable,
+	InterpolandHandle x, InterpolandHandle y, InterpolandHandle z,
+	sf::Texture* wallTexture, sf::Texture* topTexture
+) {
+	ReferenceDestroyable(destroyable);
+	return cubes.add({destroyable, {x, y, z}, {1, 1, 1, 1}, wallTexture, topTexture});
+}
+
+
+
+
+SpriteVert cubeWallVerts[] = {
+	// south
+	{{-.5f, 1, -.5f}, {0, 0}},
+	{{.5f, 1, -.5f}, {1, 0}},
+	{{.5f, 0, -.5f}, {1, 1}},
+	{{-.5f, 0, -.5f}, {0, 1}},
+
+	// east
+	{{.5f, 1, -.5f}, {0, 0}},
+	{{.5f, 1, .5f}, {1, 0}},
+	{{.5f, 0, .5f}, {1, 1}},
+	{{.5f, 0, -.5f}, {0, 1}},
+
+	// west
+	{{-.5f, 1, .5f}, {1, 0}},
+	{{-.5f, 1, -.5f}, {0, 0}},
+	{{-.5f, 0, -.5f}, {0, 1}},
+	{{-.5f, 0, .5f}, {1, 1}},
+
+	//{{.5f, 1, .5f}, {1, 0}},
+	//{{-.5f, 1, .5f}, {0, 0}},
+	//{{-.5f, 0, .5f}, {0, 1}},
+	//{{.5f, 0, .5f}, {1, 1}}
+
+};
+
+SpriteVert cubeTopVerts[] = {
+	{{-.5f, 1, .5f}, {0, 0}},
+	{{.5f, 1, .5f}, {1, 0}},
+	{{.5f, 1, -.5f}, {1, 1}},
+	{{-.5f, 1, -.5f}, {0, 1}}
+};
+
+void DrawWorld() {
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
@@ -63,6 +118,34 @@ void DrawSprites() {
 		for(int i = 0; i < 4; i++) {
 			glTexCoord2fv(&spriteVerts[i].tex.u);
 			glVertex3fv(&spriteVerts[i].position.x);
+		}
+
+		glEnd();
+		glPopMatrix();
+	}
+
+	for(auto it = cubes.begin(); it != cubes.end(); it++) {
+		if(!it->destroyable->alive) {
+			UnreferenceDestroyable(it->destroyable);
+			cubes.remove(it);
+			continue;
+		}
+
+		sf::Texture::bind(it->wallTexture);
+
+		glPushMatrix();
+		glTranslatef(it->position.x->currValue, it->position.y->currValue, it->position.z->currValue);
+		glBegin(GL_QUADS);
+
+		glColor4fv(&it->color.r);
+
+		for(int i = 0; i < 12; i++) {
+			glTexCoord2fv(&cubeWallVerts[i].tex.u);
+			glVertex3fv(&cubeWallVerts[i].position.x);
+		}
+		for(int i = 0; i < 4; i++) {
+			glTexCoord2fv(&cubeTopVerts[i].tex.u);
+			glVertex3fv(&cubeTopVerts[i].position.x);
 		}
 
 		glEnd();
