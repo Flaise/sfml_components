@@ -27,18 +27,21 @@ SpriteVert spriteVerts[] = {
 struct Sprite {
 	DestroyableHandle destroyable;
 	struct { InterpolandHandle x, y, z; } position;
+	InterpolandHandle xScale;
 	struct { GLfloat r, g, b, a; } color;
 	sf::Texture* texture;
-	Direction2 flipState;
 };
 using SpriteHandle = SparseArray3<Sprite, 100>::Handle;
 SparseArray3<Sprite, 100> sprites;
 
 SpriteHandle MakeSprite(
-	DestroyableHandle destroyable, InterpolandHandle x, InterpolandHandle y, InterpolandHandle z, sf::Texture* texture
+	DestroyableHandle destroyable,
+	InterpolandHandle x, InterpolandHandle y, InterpolandHandle z,
+	InterpolandHandle xScale,
+	sf::Texture* texture
 ) {
 	ReferenceDestroyable(destroyable);
-	return sprites.add({destroyable, {x, y, z}, {1, 1, 1, 1}, texture, Direction2::LEFT});
+	return sprites.add({destroyable, {x, y, z}, xScale, {1, 1, 1, 1}, texture});
 }
 
 struct Cube {
@@ -113,16 +116,7 @@ void DrawWorld() {
 
 		glPushMatrix();
 		glTranslatef(it->position.x->currValue, it->position.y->currValue, it->position.z->currValue);
-
-		switch(it->flipState) {
-			case Direction2::LEFT:
-				break;
-			case Direction2::RIGHT:
-				glScalef(-1, 1, 1);
-				break;
-			default:
-				ASSERT(false);
-		}
+		glScalef(it->xScale->currValue, 1, 1);
 
 		glBegin(GL_QUADS);
 

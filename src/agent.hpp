@@ -15,11 +15,10 @@
 struct Agent {
 	DestroyableHandle destroyable;
 	BodyHandle body;
-	InterpolandHandle x, y;
+	InterpolandHandle x, y, xScale;
 	Direction4 direction;
 	sf::Time timePerMove;
 	sf::Time timeUntilNextMove;
-	SpriteHandle sprite;
 };
 using AgentHandle = SparseArray3<Agent, 20>::Handle;
 SparseArray3<Agent, 20> agents;
@@ -29,11 +28,12 @@ std::unordered_set<AgentHandle> eaters;
 
 
 AgentHandle MakeAgent(
-	DestroyableHandle destroyable, BodyHandle body, InterpolandHandle x, InterpolandHandle y, sf::Time timePerMove,
-	SpriteHandle sprite
+	DestroyableHandle destroyable, BodyHandle body,
+	InterpolandHandle x, InterpolandHandle y, InterpolandHandle xScale,
+	sf::Time timePerMove
 ) {
 	ReferenceDestroyable(destroyable);
-	return agents.add({destroyable, body, x, y, Direction4::NONE, timePerMove, sf::milliseconds(0), sprite});
+	return agents.add({destroyable, body, x, y, xScale, Direction4::NONE, timePerMove, sf::milliseconds(0)});
 }
 
 bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
@@ -107,7 +107,8 @@ void UpdateAgents(sf::Time dt) {
 			case Direction4::EAST:
 				if(_moveAgent(it.getHandle(), {1, 0}, duration)) {
 					Interpolate(it->x, 1, duration, Tween::Linear);
-					it->sprite->flipState = Direction2::RIGHT;
+					if(it->xScale->destValue != 1)
+						InterpolateTo(it->xScale, 1, sf::milliseconds(300), Tween::SINE);
 				}
 				break;
 			case Direction4::SOUTH:
@@ -117,7 +118,8 @@ void UpdateAgents(sf::Time dt) {
 			case Direction4::WEST:
 				if(_moveAgent(it.getHandle(), {-1, 0}, duration)) {
 					Interpolate(it->x, -1, duration, Tween::Linear);
-					it->sprite->flipState = Direction2::LEFT;
+					if(it->xScale->destValue != -1)
+						InterpolateTo(it->xScale, -1, sf::milliseconds(300), Tween::SINE);
 				}
 				break;
 			default:

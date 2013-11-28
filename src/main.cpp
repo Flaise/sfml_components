@@ -134,9 +134,10 @@ int main() {
 		auto x = MakeInterpoland(destroyable, 2);
 		auto y = MakeInterpoland(destroyable, 0);
 		auto z = MakeInterpoland(destroyable, 1);
-		auto sprite = MakeSprite(destroyable, x, y, z, &texture_sharpears);
+		auto xScale = MakeInterpoland(destroyable, 1);
+		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_sharpears);
 		auto obstacle = MakeBody(destroyable, {2, 1});
-		auto agent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(800), sprite);
+		auto agent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(800));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(2500), sf::milliseconds(4500));
 		MakeWorldCamFocus(destroyable, obstacle);
 	}
@@ -146,9 +147,10 @@ int main() {
 		auto x = MakeInterpoland(destroyable, 1);
 		auto y = MakeInterpoland(destroyable, 0);
 		auto z = MakeInterpoland(destroyable, -1);
-		auto sprite = MakeSprite(destroyable, x, y, z, &texture_longears);
+		auto xScale = MakeInterpoland(destroyable, 1);
+		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_longears);
 		auto obstacle = MakeBody(destroyable, {1, -1});
-		auto agent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(750), sprite);
+		auto agent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(750));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(1500), sf::milliseconds(5000));
 		MakeWorldCamFocus(destroyable, obstacle);
 		MakePushable(obstacle, x, z);
@@ -161,10 +163,11 @@ int main() {
 		auto x = MakeInterpoland(destroyable, 0);
 		auto y = MakeInterpoland(destroyable, 0);
 		auto z = MakeInterpoland(destroyable, -3);
-		auto sprite = MakeSprite(destroyable, x, y, z, &texture_sharpears);
+		auto xScale = MakeInterpoland(destroyable, 1);
+		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_sharpears);
 		sprite->color = {.6f, .2f, .2f, 1};
 		auto obstacle = MakeBody(destroyable, {0, -3});
-		playerAgent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(800), sprite);
+		playerAgent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(800));
 		MakeWorldCamFocus(destroyable, obstacle);
 
 		eaters.insert(playerAgent);
