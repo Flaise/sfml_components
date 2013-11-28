@@ -82,7 +82,7 @@ void DrawWorldCam(sf::RenderWindow* window) {
 	float halfWidth = aspect * worldCamH->currValue / 2;
 	float halfHeight = .5 * worldCamH->currValue;
 
-	glMatrixMode(GL_PROJECTION);
+	/*glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(
 		worldCamX->currValue - halfWidth, // left
@@ -92,6 +92,39 @@ void DrawWorldCam(sf::RenderWindow* window) {
 		-1, // near
 		1 // far
 	);
+	glMatrixMode(GL_MODELVIEW);*/
+
+
+	//glFrustum(-1.0, 1.0, -1.0, 1.0, 5, 100);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//void glFrustum(GLdouble  left,  GLdouble  right,  GLdouble  bottom,  GLdouble  top,  GLdouble  nearVal,  GLdouble  farVal);
+
+	glFrustum(
+		//worldCamX->currValue - halfWidth, // left
+		//worldCamX->currValue + halfWidth, // right
+		//worldCamY->currValue + halfHeight, // bottom
+		//worldCamY->currValue - halfHeight, // top
+
+		-aspect/2 * .5f, // left
+		aspect/2 * .5f, // right
+		-.5f * .5f, // bottom
+		.5f * .5f, // top
+
+		1, // near
+		20 // far
+
+			//left
+			//right
+			//bottom
+			//top
+			//near
+			//far
+	);
+	glScalef(1, 1, -1);
+	glRotatef(-15, 1, 0, 0);
+	glTranslatef(0, -2, 10);
+
 	glMatrixMode(GL_MODELVIEW);
 }
 

@@ -99,16 +99,16 @@ void UpdateAgents(sf::Time dt) {
 				it->timeUntilNextMove = sf::milliseconds(0);
 				break;
 			case Direction4::NORTH:
-				if(_moveAgent(it.getHandle(), {0, -1}, duration))
-					Interpolate(it->y, -1, duration, Tween::Linear);
+				if(_moveAgent(it.getHandle(), {0, 1}, duration))
+					Interpolate(it->y, 1, duration, Tween::Linear);
 				break;
 			case Direction4::EAST:
 				if(_moveAgent(it.getHandle(), {1, 0}, duration))
 					Interpolate(it->x, 1, duration, Tween::Linear);
 				break;
 			case Direction4::SOUTH:
-				if(_moveAgent(it.getHandle(), {0, 1}, duration))
-					Interpolate(it->y, 1, duration, Tween::Linear);
+				if(_moveAgent(it.getHandle(), {0, -1}, duration))
+					Interpolate(it->y, -1, duration, Tween::Linear);
 				break;
 			case Direction4::WEST:
 				if(_moveAgent(it.getHandle(), {-1, 0}, duration))

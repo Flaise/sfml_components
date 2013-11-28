@@ -82,40 +82,101 @@
 		<Linker>
 			<Add directory="C:/SFML-2.1/lib" />
 		</Linker>
-		<Unit filename="src/agent.hpp" />
+		<Unit filename="src/agent.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Unit filename="src/assert.hpp" />
-		<Unit filename="src/assets/block-pushable.h" />
-		<Unit filename="src/assets/block.h" />
-		<Unit filename="src/assets/longears.h" />
-		<Unit filename="src/assets/sharpears.h" />
-		<Unit filename="src/assets/whiterabbit.h" />
+		<Unit filename="src/assets/block-pushable.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/assets/block.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/assets/longears.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/assets/sharpears.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/assets/whiterabbit.h">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Unit filename="src/benchmark/benchmark.cpp">
 			<Option target="Benchmark" />
 			<Option target="Benchmark-Debug" />
 		</Unit>
-		<Unit filename="src/discrete2d.hpp" />
-		<Unit filename="src/entity.hpp">
+		<Unit filename="src/body.hpp">
 			<Option target="Debug" />
 			<Option target="Release" />
 		</Unit>
-		<Unit filename="src/fire.hpp" />
-		<Unit filename="src/framerate.hpp" />
-		<Unit filename="src/handledset.hpp" />
-		<Unit filename="src/interpolation.hpp" />
-		<Unit filename="src/main.cpp" />
-		<Unit filename="src/obstacle.hpp" />
+		<Unit filename="src/destroyable.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="src/discrete2d.hpp" />
+		<Unit filename="src/framerate.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/interpolation.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/main.cpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Unit filename="src/sparsearray.hpp" />
 		<Unit filename="src/sparsearray2.hpp" />
 		<Unit filename="src/sparsearray3.hpp" />
-		<Unit filename="src/sprite.hpp" />
+		<Unit filename="src/sprite.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Unit filename="src/tests/catch.hpp">
 			<Option target="Tests" />
 		</Unit>
 		<Unit filename="src/tests/tests.cpp">
 			<Option target="Tests" />
 		</Unit>
-		<Unit filename="src/wanderai.hpp" />
-		<Unit filename="src/worldcam.hpp" />
+		<Unit filename="src/wanderai.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/worldcam.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+			<Option target="Benchmark" />
+			<Option target="Benchmark-Debug" />
+		</Unit>
 		<Extensions>
 			<DoxyBlocks>
 				<comment_style block="0" line="0" />

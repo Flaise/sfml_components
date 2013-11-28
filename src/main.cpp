@@ -79,17 +79,20 @@ void UpdateTexts(sf::RenderWindow* window) {
 
 
 
-void MakeWall(int16_t x, int16_t y, sf::Texture* texture) {
+void MakeWall(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
-	MakeSprite(destroyable, MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), texture);
-	MakeBody(destroyable, {x, y});
+	MakeSprite(
+		destroyable, MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), MakeInterpoland(destroyable, z), texture
+	);
+	MakeBody(destroyable, {x, z});
 }
-void MakePushableBlock(int16_t x, int16_t y, sf::Texture* texture) {
+void MakePushableBlock(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
 	auto xi = MakeInterpoland(destroyable, x);
 	auto yi = MakeInterpoland(destroyable, y);
-	MakeSprite(destroyable, xi, yi, texture);
-	MakePushable(MakeBody(destroyable, {x, y}), xi, yi);
+	auto zi = MakeInterpoland(destroyable, z);
+	MakeSprite(destroyable, xi, yi, zi, texture);
+	MakePushable(MakeBody(destroyable, {x, z}), xi, zi);
 }
 
 
@@ -121,18 +124,19 @@ int main() {
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
-	MakeWall(-1, -1, &texture_block);
-	MakeWall(-1, -2, &texture_block);
-	MakeWall(-2, -2, &texture_block);
-	MakePushableBlock(0, -1, &texture_block_pushable);
+	MakeWall(-1, 0, -1, &texture_block);
+	MakeWall(-1, 0, -2, &texture_block);
+	MakeWall(-2, 0, -2, &texture_block);
+	MakePushableBlock(0, 0, -1, &texture_block_pushable);
 
 	{
 		auto destroyable = MakeDestroyable();
 		auto x = MakeInterpoland(destroyable, 2);
-		auto y = MakeInterpoland(destroyable, 1);
-		MakeSprite(destroyable, x, y, &texture_sharpears);
+		auto y = MakeInterpoland(destroyable, 0);
+		auto z = MakeInterpoland(destroyable, 1);
+		MakeSprite(destroyable, x, y, z, &texture_sharpears);
 		auto obstacle = MakeBody(destroyable, {2, 1});
-		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(800));
+		auto agent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(800));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(2500), sf::milliseconds(4500));
 		MakeWorldCamFocus(destroyable, obstacle);
 	}
@@ -140,13 +144,14 @@ int main() {
 	{
 		auto destroyable = MakeDestroyable();
 		auto x = MakeInterpoland(destroyable, 1);
-		auto y = MakeInterpoland(destroyable, -1);
-		MakeSprite(destroyable, x, y, &texture_longears);
+		auto y = MakeInterpoland(destroyable, 0);
+		auto z = MakeInterpoland(destroyable, -1);
+		MakeSprite(destroyable, x, y, z, &texture_longears);
 		auto obstacle = MakeBody(destroyable, {1, -1});
-		auto agent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(750));
+		auto agent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(750));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(1500), sf::milliseconds(5000));
 		MakeWorldCamFocus(destroyable, obstacle);
-		MakePushable(obstacle, x, y);
+		MakePushable(obstacle, x, z);
 
 		eatables.insert(obstacle);
 	}
@@ -154,11 +159,12 @@ int main() {
 	AgentHandle playerAgent; {
 		auto destroyable = MakeDestroyable();
 		auto x = MakeInterpoland(destroyable, 0);
-		auto y = MakeInterpoland(destroyable, 1);
-		auto sprite = MakeSprite(destroyable, x, y, &texture_sharpears);
+		auto y = MakeInterpoland(destroyable, 0);
+		auto z = MakeInterpoland(destroyable, 1);
+		auto sprite = MakeSprite(destroyable, x, y, z, &texture_sharpears);
 		sprite->color.b = .35f;
 		auto obstacle = MakeBody(destroyable, {0, 1});
-		playerAgent = MakeAgent(destroyable, obstacle, x, y, sf::milliseconds(800));
+		playerAgent = MakeAgent(destroyable, obstacle, x, z, sf::milliseconds(800));
 		MakeWorldCamFocus(destroyable, obstacle);
 
 		eaters.insert(playerAgent);
@@ -232,7 +238,7 @@ int main() {
 
 
 
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 		window.pushGLStates();
