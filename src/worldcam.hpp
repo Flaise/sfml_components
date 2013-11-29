@@ -52,19 +52,12 @@ void UpdateWorldCam(sf::RenderWindow* window) {
 		}
 
 		auto current = it->body->position;
-		if(current.x < minBounds.x)
-			minBounds.x = current.x;
-		if(current.x > maxBounds.x)
-			maxBounds.x = current.x;
-		//if(current.y < minY)
-		//	minY = current.y;
-		//if(current.y > maxY)
-		//	maxY = current.y;
-		minBounds.y = maxBounds.y = 0;
-		if(current.y < minBounds.z)
-			minBounds.z = current.y;
-		if(current.y > maxBounds.z)
-			maxBounds.z = current.y;
+		minBounds.x = std::min(minBounds.x, current.x);
+		maxBounds.x = std::max(maxBounds.x, current.x);
+		minBounds.y = std::min(minBounds.y, current.y);
+		maxBounds.y = std::max(maxBounds.y, current.y);
+		minBounds.z = std::min(minBounds.z, current.z);
+		maxBounds.z = std::max(maxBounds.z, current.z);
 	}
 	if(worldCamFoci.size() == 0)
 		return;

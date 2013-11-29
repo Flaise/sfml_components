@@ -15,7 +15,7 @@
 struct Agent {
 	DestroyableHandle destroyable;
 	BodyHandle body;
-	InterpolandHandle x, y, xScale;
+	InterpolandHandle x, y, z, xScale;
 	Direction4 direction;
 	sf::Time timePerMove;
 	sf::Time timeUntilNextMove;
@@ -29,15 +29,15 @@ std::unordered_set<AgentHandle> eaters;
 
 AgentHandle MakeAgent(
 	DestroyableHandle destroyable, BodyHandle body,
-	InterpolandHandle x, InterpolandHandle y, InterpolandHandle xScale,
+	InterpolandHandle x, InterpolandHandle y, InterpolandHandle z, InterpolandHandle xScale,
 	sf::Time timePerMove
 ) {
 	ReferenceDestroyable(destroyable);
-	return agents.add({destroyable, body, x, y, xScale, Direction4::NONE, timePerMove, sf::milliseconds(0)});
+	return agents.add({destroyable, body, x, y, z, xScale, Direction4::NONE, timePerMove, sf::milliseconds(0)});
 }
 
-bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
-	Vec2i dest = agent->body->position + delta;
+bool _moveAgent(AgentHandle agent, Vec3i delta, sf::Time duration) {
+	auto dest = agent->body->position + delta;
 
 	auto obstructorIt = GetBodyAt(dest);
 	if(obstructorIt != bodies.end()) {
@@ -60,6 +60,8 @@ bool _moveAgent(AgentHandle agent, Vec2i delta, sf::Time duration) {
 					Interpolate(pushables[obstructor].x, delta.x, duration, Tween::Linear);
 				if(delta.y)
 					Interpolate(pushables[obstructor].y, delta.y, duration, Tween::Linear);
+				if(delta.z)
+					Interpolate(pushables[obstructor].z, delta.z, duration, Tween::Linear);
 			}
 		}
 		else {
@@ -101,22 +103,22 @@ void UpdateAgents(sf::Time dt) {
 				it->timeUntilNextMove = sf::milliseconds(0);
 				break;
 			case Direction4::NORTH:
-				if(_moveAgent(it.getHandle(), {0, 1}, duration))
-					Interpolate(it->y, 1, duration, Tween::Linear);
+				if(_moveAgent(it.getHandle(), {0, 0, 1}, duration))
+					Interpolate(it->z, 1, duration, Tween::Linear);
 				break;
 			case Direction4::EAST:
-				if(_moveAgent(it.getHandle(), {1, 0}, duration)) {
+				if(_moveAgent(it.getHandle(), {1, 0, 0}, duration)) {
 					Interpolate(it->x, 1, duration, Tween::Linear);
 					if(it->xScale->destValue != 1)
 						InterpolateTo(it->xScale, 1, sf::milliseconds(300), Tween::SINE);
 				}
 				break;
 			case Direction4::SOUTH:
-				if(_moveAgent(it.getHandle(), {0, -1}, duration))
-					Interpolate(it->y, -1, duration, Tween::Linear);
+				if(_moveAgent(it.getHandle(), {0, 0, -1}, duration))
+					Interpolate(it->z, -1, duration, Tween::Linear);
 				break;
 			case Direction4::WEST:
-				if(_moveAgent(it.getHandle(), {-1, 0}, duration)) {
+				if(_moveAgent(it.getHandle(), {-1, 0, 0}, duration)) {
 					Interpolate(it->x, -1, duration, Tween::Linear);
 					if(it->xScale->destValue != -1)
 						InterpolateTo(it->xScale, -1, sf::milliseconds(300), Tween::SINE);

@@ -11,7 +11,7 @@
 
 struct Body {
 	DestroyableHandle destroyable;
-	Vec2i position;
+	Vec3i position;
 };
 SparseArray3<Body> bodies;
 using BodyHandle = typename SparseArray3<Body>::Handle;
@@ -20,14 +20,14 @@ std::unordered_set<BodyHandle> eatables;
 
 
 struct Pushable {
-	InterpolandHandle x, y;
+	InterpolandHandle x, y, z;
 };
 
 std::unordered_map<BodyHandle, Pushable> pushables;
 
 
 
-SparseArray3<Body>::Iterator GetBodyAt(Vec2i position) {
+SparseArray3<Body>::Iterator GetBodyAt(Vec3i position) {
 	auto it = bodies.begin();
 	for(; it != bodies.end(); it++) {
 		if(!it->destroyable->alive) {
@@ -47,28 +47,28 @@ SparseArray3<Body>::Iterator GetBodyAt(Vec2i position) {
 	return it;
 }
 
-bool IsBodyAt(Vec2i position) {
+bool IsBodyAt(Vec3i position) {
 	return GetBodyAt(position) != bodies.end();
 }
 
-BodyHandle MakeBody(DestroyableHandle destroyable, Vec2i position) {
+BodyHandle MakeBody(DestroyableHandle destroyable, Vec3i position) {
 	ASSERT(!IsBodyAt(position));
 
 	ReferenceDestroyable(destroyable);
 	return bodies.add({destroyable, position});
 }
 
-void MoveBodyTo(BodyHandle body, Vec2i dest) {
+void MoveBodyTo(BodyHandle body, Vec3i dest) {
 	ASSERT(dest == body->position || !IsBodyAt(dest));
 
 	body->position = dest;
 }
 
 
-void MakePushable(BodyHandle body, InterpolandHandle x, InterpolandHandle y) {
+void MakePushable(BodyHandle body, InterpolandHandle x, InterpolandHandle y, InterpolandHandle z) {
 	ASSERT(pushables.count(body) == 0);
 
-	pushables[body] = {x, y};
+	pushables[body] = {x, y, z};
 }
 
 #endif // OBSTACLE_HPP_INCLUDED

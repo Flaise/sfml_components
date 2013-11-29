@@ -80,6 +80,7 @@
 			<Add directory="C:/SFML-2.1/include" />
 		</Compiler>
 		<Linker>
+			<Add option="-lglu32" />
 			<Add directory="C:/SFML-2.1/lib" />
 		</Linker>
 		<Unit filename="src/agent.hpp">

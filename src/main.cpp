@@ -9,6 +9,8 @@ bool approximately_equal(T a, T b, T tolerance) {
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 
+using Vec3i = sf::Vector3<int16_t>;
+
 #include <iostream>
 #include <string>
 #include <cstdlib> // for rand()
@@ -84,7 +86,7 @@ void MakeWall(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 		MakeInterpoland(destroyable, x), MakeInterpoland(destroyable, y), MakeInterpoland(destroyable, z),
 		texture, texture
 	);
-	MakeBody(destroyable, {x, z});
+	MakeBody(destroyable, {x, y, z});
 }
 void MakePushableBlock(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto destroyable = MakeDestroyable();
@@ -92,7 +94,7 @@ void MakePushableBlock(int16_t x, int16_t y, int16_t z, sf::Texture* texture) {
 	auto yi = MakeInterpoland(destroyable, y);
 	auto zi = MakeInterpoland(destroyable, z);
 	MakeCube(destroyable, xi, yi, zi, texture, texture);
-	MakePushable(MakeBody(destroyable, {x, z}), xi, zi);
+	MakePushable(MakeBody(destroyable, {x, y, z}), xi, yi, zi);
 }
 
 
@@ -136,8 +138,8 @@ int main() {
 		auto z = MakeInterpoland(destroyable, 1);
 		auto xScale = MakeInterpoland(destroyable, 1);
 		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_sharpears);
-		auto obstacle = MakeBody(destroyable, {2, 1});
-		auto agent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(800));
+		auto obstacle = MakeBody(destroyable, {2, 0, 1});
+		auto agent = MakeAgent(destroyable, obstacle, x, y, z, xScale, sf::milliseconds(800));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(2500), sf::milliseconds(4500));
 		MakeWorldCamFocus(destroyable, obstacle);
 	}
@@ -149,11 +151,11 @@ int main() {
 		auto z = MakeInterpoland(destroyable, -1);
 		auto xScale = MakeInterpoland(destroyable, 1);
 		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_longears);
-		auto obstacle = MakeBody(destroyable, {1, -1});
-		auto agent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(750));
+		auto obstacle = MakeBody(destroyable, {1, 0, -1});
+		auto agent = MakeAgent(destroyable, obstacle, x, y, z, xScale, sf::milliseconds(750));
 		MakeWanderAI(destroyable, agent, sf::milliseconds(1500), sf::milliseconds(5000));
 		MakeWorldCamFocus(destroyable, obstacle);
-		MakePushable(obstacle, x, z);
+		MakePushable(obstacle, x, y, z);
 
 		eatables.insert(obstacle);
 	}
@@ -166,8 +168,8 @@ int main() {
 		auto xScale = MakeInterpoland(destroyable, 1);
 		auto sprite = MakeSprite(destroyable, x, y, z, xScale, &texture_sharpears);
 		sprite->color = {.6f, .2f, .2f, 1};
-		auto obstacle = MakeBody(destroyable, {0, -3});
-		playerAgent = MakeAgent(destroyable, obstacle, x, z, xScale, sf::milliseconds(800));
+		auto obstacle = MakeBody(destroyable, {0, 0, -3});
+		playerAgent = MakeAgent(destroyable, obstacle, x, y, z, xScale, sf::milliseconds(800));
 		MakeWorldCamFocus(destroyable, obstacle);
 
 		eaters.insert(playerAgent);
