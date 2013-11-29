@@ -3,6 +3,7 @@
 
 #include <SFML/OpenGL.hpp>
 #include <boost/limits.hpp>
+#include <boost/math/constants/constants.hpp> // for pi
 
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
@@ -15,7 +16,8 @@ auto worldCamX = MakeInterpoland(worldCamDestroyable, 0);
 auto worldCamY = MakeInterpoland(worldCamDestroyable, 0);
 auto worldCamZ = MakeInterpoland(worldCamDestroyable, 0);
 auto worldCamH = MakeInterpoland(worldCamDestroyable, 6);
-auto worldCamFOV = MakeInterpoland(worldCamDestroyable, .5f); // smooth out instant window changes
+auto worldCamFOV = MakeInterpoland(worldCamDestroyable, .1f); // smooth out instant window changes
+auto worldCamDistance = MakeInterpoland(worldCamDestroyable, 10);
 uint8_t worldCamPadding = 7;
 
 struct WorldCamFocus {
@@ -31,12 +33,16 @@ WorldCamFocusHandle MakeWorldCamFocus(DestroyableHandle destroyable, BodyHandle 
 }
 
 void UpdateWorldCam(sf::RenderWindow* window) {
-	int16_t minX = std::numeric_limits<int16_t>::max();
-	int16_t maxX = std::numeric_limits<int16_t>::min();
-	int16_t minY = std::numeric_limits<int16_t>::max();
-	int16_t maxY = std::numeric_limits<int16_t>::min();
-	int16_t minZ = std::numeric_limits<int16_t>::max();
-	int16_t maxZ = std::numeric_limits<int16_t>::min();
+	sf::Vector3<int16_t> minBounds(
+		std::numeric_limits<int16_t>::max(),
+		std::numeric_limits<int16_t>::max(),
+		std::numeric_limits<int16_t>::max()
+	);
+	sf::Vector3<int16_t> maxBounds(
+		std::numeric_limits<int16_t>::min(),
+		std::numeric_limits<int16_t>::min(),
+		std::numeric_limits<int16_t>::min()
+	);
 
 	for(auto it = worldCamFoci.begin(); it != worldCamFoci.end(); it++) {
 		if(!it->destroyable->alive) {
@@ -46,76 +52,55 @@ void UpdateWorldCam(sf::RenderWindow* window) {
 		}
 
 		auto current = it->body->position;
-		if(current.x < minX)
-			minX = current.x;
-		if(current.x > maxX)
-			maxX = current.x;
+		if(current.x < minBounds.x)
+			minBounds.x = current.x;
+		if(current.x > maxBounds.x)
+			maxBounds.x = current.x;
 		//if(current.y < minY)
 		//	minY = current.y;
 		//if(current.y > maxY)
 		//	maxY = current.y;
-		minY = maxY = 0;
-		if(current.y < minZ)
-			minZ = current.y;
-		if(current.y > maxZ)
-			maxZ = current.y;
+		minBounds.y = maxBounds.y = 0;
+		if(current.y < minBounds.z)
+			minBounds.z = current.y;
+		if(current.y > maxBounds.z)
+			maxBounds.z = current.y;
 	}
 	if(worldCamFoci.size() == 0)
 		return;
 
-	float centerX = (minX + maxX) / 2.0f;
-	float centerY = (minY + maxY) / 2.0f;
-	float centerZ = (minZ + maxZ) / 2.0f;
+	sf::Vector3f center = sf::Vector3f(minBounds + maxBounds) / 2.0f;
 
 	float boundingRadius = 0;
 	for(auto it = worldCamFoci.begin(); it != worldCamFoci.end(); it++) {
-
+		auto diff = sf::Vector3f(it->body->position.x, 0, it->body->position.y) - center;
+		auto mag = sqrtf(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
+		boundingRadius = std::max(boundingRadius, mag);
 	}
 
-	if(worldCamX->destValue != centerX)
-		InterpolateTo(worldCamX, centerX, sf::milliseconds(1500), Tween::SINE_INOUT);
-	if(worldCamY->destValue != centerY)
-		InterpolateTo(worldCamY, centerY, sf::milliseconds(1500), Tween::SINE_INOUT);
-	if(worldCamZ->destValue != centerZ)
-		InterpolateTo(worldCamZ, centerZ, sf::milliseconds(1500), Tween::SINE_INOUT);
+	float camDistance = boundingRadius / sinf(worldCamFOV->destValue * boost::math::constants::pi<float>());
+
+	if(worldCamX->destValue != center.x)
+		InterpolateTo(worldCamX, center.x, sf::milliseconds(1500), Tween::SINE_INOUT);
+	if(worldCamY->destValue != center.y)
+		InterpolateTo(worldCamY, center.y, sf::milliseconds(1500), Tween::SINE_INOUT);
+	if(worldCamZ->destValue != center.z)
+		InterpolateTo(worldCamZ, center.z, sf::milliseconds(1500), Tween::SINE_INOUT);
+	if(worldCamDistance->destValue != camDistance)
+		InterpolateTo(worldCamDistance, camDistance, sf::milliseconds(1500), Tween::SINE_INOUT);
 }
 
 void DrawWorldCam(sf::RenderWindow* window) {
 	sf::Vector2u wsize = window->getSize();
 	float aspect = float(wsize.x) / wsize.y;
-	float halfWidth = aspect * worldCamH->currValue / 2;
-	float halfHeight = .5 * worldCamH->currValue;
 
-
-	//glFrustum(-1.0, 1.0, -1.0, 1.0, 5, 100);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	//void glFrustum(GLdouble  left,  GLdouble  right,  GLdouble  bottom,  GLdouble  top,  GLdouble  nearVal,  GLdouble  farVal);
+	gluPerspective(worldCamFOV->currValue * 360, aspect, 1, worldCamDistance->currValue * 2);
 
-	glFrustum(
-		//worldCamX->currValue - halfWidth, // left
-		//worldCamX->currValue + halfWidth, // right
-		//worldCamY->currValue + halfHeight, // bottom
-		//worldCamY->currValue - halfHeight, // top
-
-		-aspect/2 * .5f, // left
-		aspect/2 * .5f, // right
-		-.5f * .5f, // bottom
-		.5f * .5f, // top
-
-		1, // near
-		20 // far
-
-			//left
-			//right
-			//bottom
-			//top
-			//near
-			//far
-	);
 	glScalef(1, 1, -1);
+	glTranslatef(0, 0, worldCamDistance->currValue);
 	glRotatef(-15, 1, 0, 0);
-	glTranslatef(0, -2, 10);
 	glTranslatef(-worldCamX->currValue, -worldCamY->currValue, -worldCamZ->currValue);
 
 	glMatrixMode(GL_MODELVIEW);
