@@ -3,13 +3,13 @@
 
 #include <SFML/OpenGL.hpp>
 #include <boost/limits.hpp>
-#include <boost/math/constants/constants.hpp> // for pi
 
 #include "sparsearray3.hpp"
 #include "interpolation.hpp"
 #include "body.hpp"
 #include "destroyable.hpp"
 #include "assert.hpp"
+#include "angle.hpp"
 
 auto worldCamDestroyable = MakeDestroyable();
 auto worldCamX = MakeInterpoland(worldCamDestroyable, 0);
@@ -18,7 +18,7 @@ auto worldCamZ = MakeInterpoland(worldCamDestroyable, 0);
 auto worldCamH = MakeInterpoland(worldCamDestroyable, 6);
 auto worldCamFOV = MakeInterpoland(worldCamDestroyable, .1f); // smooth out instant window changes
 auto worldCamDistance = MakeInterpoland(worldCamDestroyable, 10);
-uint8_t worldCamPadding = 7;
+uint8_t worldCamPadding = 2;
 
 struct WorldCamFocus {
 	DestroyableHandle destroyable;
@@ -70,8 +70,9 @@ void UpdateWorldCam(sf::RenderWindow* window) {
 		auto mag = sqrtf(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
 		boundingRadius = std::max(boundingRadius, mag);
 	}
+	boundingRadius += worldCamPadding;
 
-	float camDistance = boundingRadius / sinf(worldCamFOV->destValue * boost::math::constants::pi<float>());
+	float camDistance = boundingRadius / tanr(worldCamFOV->destValue / 2);
 
 	if(worldCamX->destValue != center.x)
 		InterpolateTo(worldCamX, center.x, sf::milliseconds(1500), Tween::SINE_INOUT);
@@ -89,7 +90,7 @@ void DrawWorldCam(sf::RenderWindow* window) {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(worldCamFOV->currValue * 360, aspect, 1, worldCamDistance->currValue * 2);
+	gluPerspective(rev2deg(worldCamFOV->currValue), aspect, 1, worldCamDistance->currValue * 2);
 
 	glScalef(1, 1, -1);
 	glTranslatef(0, 0, worldCamDistance->currValue);

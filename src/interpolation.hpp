@@ -2,13 +2,11 @@
 #define INTERPOLATION_HPP_INCLUDED
 
 #include <SFML/System/Clock.hpp>
-#pragma GCC diagnostic ignored "-Wunused-local-typedefs" // temporarily disable warnings
-	#include <boost/math/constants/constants.hpp> // for pi
-#pragma GCC diagnostic pop // reenable warnings
 
 #include "assert.hpp"
 #include "sparsearray3.hpp"
 #include "destroyable.hpp"
+#include "angle.hpp"
 
 
 struct Interpoland {
@@ -56,14 +54,11 @@ InterpolandHandle MakeInterpoland(DestroyableHandle destroyable, float value) {
 
 
 namespace Tween {
-	const float pi = boost::math::constants::pi<float>();
-	const float pi_2 = pi / 2;
-
 	float Linear(float progress) { return progress; }
 	float DelayBefore(float progress) { return 0; }
 	float DelayAfter(float progress) { return 1; }
-	float SINE_INOUT(float progress) { return sinf(2 * (progress * pi_2) - pi_2) / 2 + .5f; }
-	float SINE(float progress) { return sinf(progress * pi_2); }
+	float SINE_INOUT(float progress) { return sinr(progress * .5f - .25f) / 2 + .5f; }
+	float SINE(float progress) { return sinr(progress / 4); }
 }
 
 
