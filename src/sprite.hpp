@@ -105,6 +105,8 @@ void DrawWorld() {
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER, 0);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
 	for(auto it = sprites.begin(); it != sprites.end(); it++) {
 		if(!it->destroyable->alive) {
 			UnreferenceDestroyable(it->destroyable);

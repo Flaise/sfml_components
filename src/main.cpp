@@ -41,6 +41,7 @@ void _assertFail(const char* file, int line) {
 #include "assets/longears.h"
 #include "assets/sharpears.h"
 #include "assets/whiterabbit.h"
+#include "assets/dirt.h"
 
 
 struct DisplayText {
@@ -123,6 +124,9 @@ int main() {
 	sf::Texture texture_sharpears;
 	texture_sharpears.loadFromMemory(sharpears, sizeof(sharpears));
 
+	sf::Texture texture_dirt;
+	texture_dirt.loadFromMemory(dirt, sizeof(dirt));
+
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));
 
@@ -130,6 +134,13 @@ int main() {
 	MakeWall(-1, 0, -2, &texture_block);
 	MakeWall(-2, 0, -2, &texture_block);
 	MakePushableBlock(0, 0, -1, &texture_block_pushable);
+
+	for(int i = -4; i <= 4; i++)
+		for(int j = -4; j <= 4; j++)
+			MakeWall(i, -1, j, &texture_dirt);
+	for(int i = -7; i <= 7; i++)
+		for(int j = -7; j <= 7; j++)
+			MakeWall(i, -2, j, &texture_dirt);
 
 	{
 		auto destroyable = MakeDestroyable();

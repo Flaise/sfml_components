@@ -72,7 +72,7 @@ void UpdateWorldCam(sf::RenderWindow* window) {
 	}
 	boundingRadius += worldCamPadding;
 
-	float camDistance = boundingRadius / tanr(worldCamFOV->destValue / 2);
+	float camDistance = boundingRadius / sinr(worldCamFOV->destValue / 2);
 
 	if(worldCamX->destValue != center.x)
 		InterpolateTo(worldCamX, center.x, sf::milliseconds(1500), Tween::SINE_INOUT);
