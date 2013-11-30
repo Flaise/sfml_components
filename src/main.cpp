@@ -41,7 +41,8 @@ void _assertFail(const char* file, int line) {
 #include "assets/longears.h"
 #include "assets/sharpears.h"
 #include "assets/whiterabbit.h"
-#include "assets/dirt.h"
+//#include "assets/dirt.h"
+#include "assets/dirt2.h"
 
 
 struct DisplayText {
@@ -125,7 +126,7 @@ int main() {
 	texture_sharpears.loadFromMemory(sharpears, sizeof(sharpears));
 
 	sf::Texture texture_dirt;
-	texture_dirt.loadFromMemory(dirt, sizeof(dirt));
+	texture_dirt.loadFromMemory(dirt2, sizeof(dirt2));
 
 	sf::Font font;
 	font.loadFromMemory(whiterabbit, sizeof(whiterabbit));

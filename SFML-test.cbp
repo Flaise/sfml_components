@@ -89,6 +89,10 @@
 			<Option target="Benchmark" />
 			<Option target="Benchmark-Debug" />
 		</Unit>
+		<Unit filename="src/angle.hpp">
+			<Option target="Debug" />
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="src/assert.hpp" />
 		<Unit filename="src/assets/block-pushable.h">
 			<Option target="Debug" />
@@ -101,6 +105,10 @@
 			<Option target="Release" />
 			<Option target="Benchmark" />
 			<Option target="Benchmark-Debug" />
+		</Unit>
+		<Unit filename="src/assets/dirt.h">
+			<Option target="Debug" />
+			<Option target="Release" />
 		</Unit>
 		<Unit filename="src/assets/longears.h">
 			<Option target="Debug" />
